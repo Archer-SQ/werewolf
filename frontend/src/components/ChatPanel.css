@@ -1,0 +1,262 @@
+/**
+ * ChatPanel 组件样式优化 - 微信风格
+ */
+
+.chat-panel-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.panel-header {
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.speech-count {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.panel-content {
+  flex: 1;
+  overflow-y: auto; /* 允许垂直滚动 */
+  background: rgba(0, 0, 0, 0.2);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  scroll-behavior: smooth; /* 平滑滚动 */
+}
+
+/* 自定义滚动条样式 */
+.panel-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.panel-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.empty-tip {
+  text-align: center;
+  color: var(--color-text-muted);
+  margin-top: 40px;
+  font-size: 0.9rem;
+}
+
+/* 消息项容器 */
+.speech-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 85%;
+}
+
+/* 自己的消息靠右 */
+.speech-item.own {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+/* 头像 */
+.speech-avatar {
+  width: 36px;
+  height: 36px;
+  background: var(--color-primary);
+  border-radius: 50%; /* 圆形头像 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.avatar-num {
+  color: white;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.speech-item.own .speech-avatar {
+  background: var(--color-accent-secondary);
+}
+
+/* 气泡容器 */
+.speech-bubble {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+}
+
+/* 昵称 */
+.speech-name {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+  padding-left: 4px;
+}
+
+.speech-item.own .speech-name {
+  display: none; /* 自己不显示昵称 */
+}
+
+/* 气泡内容 */
+.speech-content-box {
+  padding: 10px 14px;
+  border-radius: 12px;
+  position: relative;
+  word-wrap: break-word;
+  line-height: 1.5;
+  font-size: 0.95rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 他人的气泡（左侧） */
+.speech-item:not(.own) .speech-content-box {
+  background: white;
+  color: #333;
+  border-top-left-radius: 2px; /* 小尖角效果 */
+}
+
+/* 自己的气泡（右侧） */
+.speech-item.own .speech-content-box {
+  background: #95ec69; /* 微信绿 */
+  color: #000;
+  border-top-right-radius: 2px; /* 小尖角效果 */
+}
+
+/* 底部输入区 */
+.input-area-wrapper {
+  padding: 12px;
+  background: var(--color-bg-card);
+  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.human-input-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.timer-text.urgent {
+  color: var(--color-danger);
+  font-weight: bold;
+  animation: pulse 1s infinite;
+}
+
+.input-box {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-input-field {
+  flex: 1;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.chat-input-field:focus {
+  border-color: var(--color-primary);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.send-button {
+  padding: 0 20px;
+  background: #95ec69; /* 微信绿按钮 */
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.send-button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.send-button:disabled {
+  background: #e0e0e0;
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* 状态栏 */
+.status-bar {
+  text-align: center;
+  padding: 8px;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+.pulse-icon {
+  animation: pulse-scale 1.5s infinite;
+}
+
+@keyframes pulse-scale {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease forwards;
+}

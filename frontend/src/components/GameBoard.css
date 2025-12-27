@@ -1,0 +1,356 @@
+/**
+ * GameBoard 组件样式
+ */
+
+.game-board {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* 顶部状态栏 */
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.round-badge {
+  padding: 6px 14px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.phase-badge {
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.phase-badge.night {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--color-accent-primary);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.phase-badge.day {
+  background: rgba(250, 204, 21, 0.15);
+  color: #facc15;
+  border: 1px solid rgba(250, 204, 21, 0.3);
+}
+
+.header-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.game-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--color-text-primary), var(--color-accent-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.my-role {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.role-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.role-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-accent-secondary);
+}
+
+/* 主内容区 */
+.game-main {
+  height: calc(100% - 92px);
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 左侧玩家面板 */
+.players-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%; /* 占满高度 */
+  overflow: hidden; /* 防止溢出 */
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0; /* 防止被压缩 */
+}
+
+.panel-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.alive-count {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.players-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* 玩家列表不需要滚动，因为数量固定且有限 */
+  /* flex: 1; */
+  /* overflow-y: auto; */
+  /* min-height: 0; */
+}
+
+/* 移除玩家列表的自定义滚动条样式 */
+/* .players-list::-webkit-scrollbar ... */
+
+.role-description {
+  padding: 16px;
+  margin-top: auto;
+  flex-shrink: 0; /* 防止被压缩 */
+}
+
+.role-description h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-accent-secondary);
+  margin-bottom: 8px;
+}
+
+.role-description p {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+/* 中间面板 */
+.center-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden; /* 防止溢出 */
+}
+
+.center-panel > * {
+  flex: 1;
+}
+
+/* 游戏结束面板 */
+.game-over-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  /* 全屏遮罩 */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+}
+
+.game-over-content {
+  text-align: center;
+  max-width: 600px;
+  width: 90%;
+  background: var(--color-bg-card);
+  padding: 32px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.game-over-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.btn {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-size: 1rem;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.game-over-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--color-text-primary), var(--color-accent-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.game-over-desc {
+  font-size: 1.1rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 32px;
+}
+
+.final-roles h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 16px;
+}
+
+.roles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.role-reveal {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.role-reveal.dead {
+  opacity: 0.5;
+}
+
+.reveal-number {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.reveal-name {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.reveal-role {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+  .game-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .players-panel {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .players-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .players-list .player-card {
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .role-description {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .game-header {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .header-center {
+    position: static;
+    transform: none;
+    order: -1;
+    width: 100%;
+    text-align: center;
+  }
+
+  .game-main {
+    padding: 16px;
+    gap: 16px;
+  }
+}

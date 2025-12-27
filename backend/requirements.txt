@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+websockets
+# crewai
+dashscope
+python-dotenv
+pydantic
+openai

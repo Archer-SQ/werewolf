@@ -1,0 +1,263 @@
+/**
+ * GameLobby 组件样式
+ */
+
+.lobby-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 极光背景效果 */
+.lobby-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    z-index: -1;
+}
+
+.aurora {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.4;
+    animation: aurora-float 20s ease-in-out infinite;
+}
+
+.aurora-1 {
+    background: linear-gradient(135deg, var(--color-accent-primary), transparent);
+    top: -200px;
+    left: -100px;
+    animation-delay: 0s;
+}
+
+.aurora-2 {
+    background: linear-gradient(135deg, var(--color-accent-secondary), transparent);
+    top: 50%;
+    right: -200px;
+    animation-delay: -7s;
+}
+
+.aurora-3 {
+    background: linear-gradient(135deg, #14b8a6, transparent);
+    bottom: -200px;
+    left: 30%;
+    animation-delay: -14s;
+}
+
+@keyframes aurora-float {
+
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    25% {
+        transform: translate(50px, -30px) scale(1.1);
+    }
+
+    50% {
+        transform: translate(-30px, 50px) scale(0.95);
+    }
+
+    75% {
+        transform: translate(-50px, -20px) scale(1.05);
+    }
+}
+
+/* 主内容区 */
+.lobby-content {
+    max-width: 560px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    z-index: 1;
+}
+
+/* 标题 */
+.lobby-header {
+    text-align: center;
+}
+
+.lobby-title {
+    margin-bottom: 12px;
+}
+
+.title-text {
+    font-size: 3.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg,
+            var(--color-text-primary) 0%,
+            var(--color-accent-primary) 50%,
+            var(--color-accent-secondary) 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradient-shift 5s ease infinite;
+    text-shadow: 0 0 60px rgba(99, 102, 241, 0.3);
+}
+
+.lobby-subtitle {
+    font-size: 1.1rem;
+    color: var(--color-text-secondary);
+}
+
+/* 主卡片 */
+.lobby-card {
+    padding: 48px 40px;
+    text-align: center;
+}
+
+.lobby-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.step-icon {
+    font-size: 3rem;
+    margin-bottom: 8px;
+}
+
+.lobby-step h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.lobby-step p {
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+}
+
+.name-input-wrapper {
+    width: 100%;
+    max-width: 280px;
+}
+
+.name-input {
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+.lobby-btn {
+    min-width: 200px;
+    padding: 14px 32px;
+    font-size: 1.1rem;
+    margin-top: 8px;
+}
+
+/* 闪光按钮效果 */
+.shiny-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.shiny-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(255, 255, 255, 0.3),
+            transparent);
+    animation: shine 2s infinite;
+}
+
+@keyframes shine {
+    0% {
+        left: -100%;
+    }
+
+    50%,
+    100% {
+        left: 100%;
+    }
+}
+
+/* 规则卡片 */
+.lobby-rules {
+    padding: 24px;
+}
+
+.lobby-rules h3 {
+    margin-bottom: 16px;
+    font-size: 1.1rem;
+    color: var(--color-text-primary);
+}
+
+.rules-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.rule-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+}
+
+.rule-icon {
+    font-size: 1.2rem;
+    width: 28px;
+    text-align: center;
+}
+
+/* 连接状态 */
+.connection-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-danger);
+    transition: background var(--transition-normal);
+}
+
+.status-dot.connected {
+    background: var(--color-success);
+    box-shadow: 0 0 8px var(--color-success);
+}
+
+/* 响应式 */
+@media (max-width: 640px) {
+    .title-text {
+        font-size: 2.5rem;
+    }
+
+    .lobby-card {
+        padding: 32px 24px;
+    }
+
+    .step-icon {
+        font-size: 2.5rem;
+    }
+
+    .lobby-step h3 {
+        font-size: 1.25rem;
+    }
+}
