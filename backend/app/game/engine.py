@@ -186,7 +186,7 @@ class GameEngine:
                 if player:
                     player.kill()
                     dead_players.append(wolf_target)
-                    messages.append(f"{player.name} 昨晚被狼人杀害")
+                    messages.append(f"{player.name} 昨晚死亡")
         
         # 处理女巫毒人
         poison_target = night_action.witch_poison_target
@@ -195,7 +195,7 @@ class GameEngine:
             if player:
                 player.kill(by_poison=True)
                 dead_players.append(poison_target)
-                messages.append(f"{player.name} 昨晚被毒死")
+                messages.append(f"{player.name} 昨晚死亡")
         
         # 清空夜晚行动
         self.game_state.night_action = None
@@ -241,9 +241,9 @@ class GameEngine:
         if not self.game_state:
             return
         
-        # 获取存活玩家，按ID排序
+        # 获取存活玩家
         alive_players = self.game_state.get_alive_players()
-        # 确保顺序是 ID 升序
+        # 确保顺序是 ID 升序，不要随机
         self.speaking_order = sorted([p.id for p in alive_players])
         self.current_speaker_index = 0
         
@@ -334,7 +334,7 @@ class GameEngine:
         executed_id = top_voted[0]
         executed = self.game_state.get_player(executed_id)
         if executed:
-            executed.kill()
+            executed.kill(reason="被公投出局")
         
         return executed_id, vote_count
     

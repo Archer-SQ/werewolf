@@ -37,7 +37,6 @@ interface PlayerCardProps {
  */
 export function PlayerCard({
     player,
-    isSpeaking = false,
     isThinking = false,
     isSelectable = false,
     isSelected = false,
@@ -62,7 +61,6 @@ export function PlayerCard({
     const cardClasses = [
         'player-card',
         player.isAlive ? 'alive' : 'dead',
-        isSpeaking ? 'speaking' : '',
         isSelectable ? 'selectable' : '',
         isSelected ? 'selected' : '',
         player.isHuman ? 'human' : 'ai'
@@ -74,9 +72,6 @@ export function PlayerCard({
             onClick={isSelectable ? onClick : undefined}
             style={{ '--role-color': roleColor } as React.CSSProperties}
         >
-            {/* 发言光晕 */}
-            {isSpeaking && <div className="speaking-glow"></div>}
-
             {/* 头像区域 */}
             <div className="player-avatar">
                 <div className="avatar-circle">
@@ -96,9 +91,16 @@ export function PlayerCard({
                 )}
             </div>
 
+            {/* 死因显示 (仅在死亡时显示) */}
+            {!player.isAlive && player.deathReason && (
+                <div className="death-reason-badge">
+                    {player.deathReason}
+                </div>
+            )}
+
             {/* 状态指示 */}
             <div className="player-status">
-                {!player.isAlive && (
+                {!player.isAlive && !player.deathReason && (
                     <div className="status-dead-overlay">
                          <span className="dead-mark">出局</span>
                     </div>

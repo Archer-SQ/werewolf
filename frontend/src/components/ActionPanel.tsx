@@ -220,7 +220,7 @@ export function ActionPanel({
                                     className={`btn ${witchChoice === 'poison' ? 'btn-primary' : 'btn-secondary'}`}
                                     onClick={() => setWitchChoice('poison')}
                                 >
-                                    选择毒人
+                                    毒人
                                 </button>
                             </div>
                         )}

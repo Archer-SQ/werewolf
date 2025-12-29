@@ -291,22 +291,36 @@ export function useGame(): UseGameReturn {
                 break;
 
             case 'player_speech':
-                setGameData(prev => ({
-                    ...prev,
-                    thinkingPlayerId: null, // 发言时清除思考状态
+                setGameData(prev => {
                     // 确保不重复添加相同的发言（基于内容和发言者）
-                    speeches: prev.speeches.some(s => 
-                        s.playerId === Number(data.speaker_id) && 
-                        s.content === (data.content as string)
-                    ) ? prev.speeches : [...prev.speeches, {
-                        playerId: Number(data.speaker_id),
-                        playerName: data.speaker_name as string,
-                        content: data.content as string,
-                        round: prev.round,
-                        phase: prev.phase
-                    }],
-                    actionRequired: prev.actionRequired?.action === 'speak' ? null : prev.actionRequired
-                }));
+                    // 增加更严格的重复检查，防止因为 React 状态合并导致的消息丢失
+                    const newSpeakerId = Number(data.speaker_id);
+                    const newContent = data.content as string;
+                    
+                    const isDuplicate = prev.speeches.some(s => 
+                        s.playerId === newSpeakerId && 
+                        s.content === newContent
+                    );
+
+                    if (isDuplicate) {
+                        return prev;
+                    }
+
+                    return {
+                        ...prev,
+                        thinkingPlayerId: null, // 发言时清除思考状态
+                        speeches: [...prev.speeches, {
+                            playerId: newSpeakerId,
+                            playerName: data.speaker_name as string,
+                            content: newContent,
+                            round: prev.round,
+                            phase: prev.phase
+                        }],
+                        // 只有当 actionRequired 存在且确实是 speak 类型时才清除
+                        // 这样可以避免意外清除其他类型的 action (如 start_vote)
+                        actionRequired: prev.actionRequired?.action === 'speak' ? null : prev.actionRequired
+                    };
+                });
                 break;
 
             case 'night_result':
@@ -316,12 +330,13 @@ export function useGame(): UseGameReturn {
                     systemMessages: [...prev.systemMessages, ...(data.messages as string[])],
                     // 同步玩家状态（如死亡）
                     players: data.players 
-                        ? (data.players as Array<{ id: number; name: string; is_human: boolean; is_alive: boolean }>).map(p => ({
+                        ? (data.players as Array<{ id: number; name: string; is_human: boolean; is_alive: boolean; death_reason?: string }>).map(p => ({
                             id: Number(p.id),
                             name: p.name,
                             isHuman: p.is_human,
                             status: p.is_alive ? 'alive' as const : 'dead' as const,
                             isAlive: p.is_alive,
+                            deathReason: p.death_reason,
                             role: prev.players.find(old => old.id === Number(p.id))?.role, // 保留已知角色
                             roleName: prev.players.find(old => old.id === Number(p.id))?.roleName // 保留已知角色名
                         }))
@@ -340,7 +355,7 @@ export function useGame(): UseGameReturn {
                         systemMessages: [...prev.systemMessages, msg],
                         players: prev.players.map(p =>
                             p.id === executedId
-                                ? { ...p, status: 'dead' as const, isAlive: false }
+                                ? { ...p, status: 'dead' as const, isAlive: false, deathReason: '被公投出局' }
                                 : p
                         )
                     }));
@@ -371,7 +386,7 @@ export function useGame(): UseGameReturn {
                         ],
                         players: prev.players.map(p =>
                             p.id === targetId
-                                ? { ...p, status: 'dead' as const, isAlive: false }
+                                ? { ...p, status: 'dead' as const, isAlive: false, deathReason: '被猎人带走' }
                                 : p
                         )
                     }));
@@ -390,6 +405,7 @@ export function useGame(): UseGameReturn {
                         role: RoleType;
                         role_name: string;
                         is_alive: boolean;
+                        death_reason?: string;
                     }>).map(r => ({
                         id: Number(r.id),
                         name: r.name,
@@ -397,6 +413,7 @@ export function useGame(): UseGameReturn {
                         roleName: r.role_name,
                         status: r.is_alive ? 'alive' as const : 'dead' as const,
                         isAlive: r.is_alive,
+                        deathReason: r.death_reason,
                         isHuman: prev.players.find(p => p.id === Number(r.id))?.isHuman || false
                     })),
                     systemMessages: [...prev.systemMessages, data.message as string]

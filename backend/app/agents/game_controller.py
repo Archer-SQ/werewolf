@@ -431,14 +431,15 @@ class GameController:
                         "id": p.id,
                         "name": p.name,
                         "is_human": p.is_human,
-                        "is_alive": p.is_alive()
+                        "is_alive": p.is_alive(),
+                        "death_reason": p.death_reason
                     }
                     for p in game_state.players
                 ]
             })
             
             # 播报死亡信息
-            died_names = [msg.split("死了")[0] for msg in messages if "死了" in msg]
+            died_names = [msg.split(" ")[0] for msg in messages if "死亡" in msg]
             if died_names:
                  await asyncio.sleep(2)
                  await self.send_message("announcement", {
@@ -486,16 +487,23 @@ class GameController:
         # 使用 create_task 避免阻塞
         asyncio.create_task(self._run_discussion())
     
-    async def _run_discussion(self) -> None:
-        """运行白天讨论阶段"""
+    async def _run_discussion(self, resume: bool = False) -> None:
+        """
+        运行白天讨论阶段
+        
+        Args:
+            resume: 是否是恢复之前的讨论（例如真实玩家发言后）
+        """
         game_state = self.engine.game_state
         if not game_state:
             return
         
-        await self.send_message("phase_change", {
-            "phase": "day_discuss",
-            "message": "白天讨论阶段开始，请按顺序发言"
-        })
+        # 只有在非恢复模式下才发送阶段变更通知
+        if not resume:
+            await self.send_message("phase_change", {
+                "phase": "day_discuss",
+                "message": "白天讨论阶段开始，请按顺序发言"
+            })
         
         # 检查是否所有人都死亡（防止死循环）
         alive_count = len(game_state.get_alive_players())
@@ -553,16 +561,35 @@ class GameController:
                 # 切换到下一个发言者
                 next_speaker = self.engine.next_speaker()
                 
+                # 增加延迟，确保前端有足够时间处理上一条 player_speech 消息
+                # 防止 speaker_turn 消息过快覆盖 player_speech
+                await asyncio.sleep(1)
+                
                 if next_speaker is None:
-                    # 发言结束，稍微延迟后进入投票
-                    await asyncio.sleep(2)
-                    # 使用 create_task 避免阻塞 WebSocket 循环
-                    asyncio.create_task(self._run_vote())
+                    # 发言结束，等待真实玩家点击"开始投票"按钮
+                    # 不再自动调用 _run_vote()
+                    # 发送一个 action_required 消息给前端，要求显示开始投票按钮
+                    human_player = self.engine.get_human_player()
+                    if human_player and human_player.is_alive():
+                        await self.send_message("action_required", {
+                            "action": "start_vote",
+                            "message": "发言结束，请点击开始投票"
+                        })
+                    else:
+                        # 如果玩家已死，直接进入投票
+                        await asyncio.sleep(2)
+                        asyncio.create_task(self._run_vote())
                     return  # 必须 return，结束当前循环任务
                 
                 # 如果还有下一个发言者，继续循环
                 # 注意：这里不需要 create_task，因为 while 循环会处理下一个
                 continue
+
+    async def handle_start_vote(self) -> None:
+        """处理开始投票请求"""
+        # 只有在发言阶段结束且等待投票时才处理
+        # 广播投票阶段开始，并正式启动投票流程
+        await self._run_vote()
 
     async def handle_speech(self, content: str) -> None:
         """
@@ -590,17 +617,29 @@ class GameController:
             # 切换到下一个发言者
             next_speaker = self.engine.next_speaker()
             
+            # 添加短暂延迟，确保前端有足够时间处理上一条消息
+            # 特别是当连续两个 AI 发言时，这个延迟有助于防止前端状态竞争
+            await asyncio.sleep(1)
+            
             if next_speaker is None:
-                # 发言结束，稍微延迟后进入投票
-                await asyncio.sleep(2)
-                # 使用 create_task 避免阻塞 WebSocket 循环
-                asyncio.create_task(self._run_vote())
+                # 发言结束，等待真实玩家点击"开始投票"按钮
+                # 发送 action_required 消息
+                human_player = self.engine.get_human_player()
+                if human_player and human_player.is_alive():
+                    await self.send_message("action_required", {
+                        "action": "start_vote",
+                        "message": "发言结束，请点击开始投票"
+                    })
+                else:
+                    await asyncio.sleep(2)
+                    asyncio.create_task(self._run_vote())
             else:
                 # 继续讨论 - 这里的逻辑需要修正
                 # 因为 handle_speech 是在 WebSocket 线程中调用的，
                 # 而 _run_discussion 的 while 循环已经因为 break 而退出了（等待真实玩家输入时）
                 # 所以这里必须重新启动 _run_discussion 来继续后续的 AI 发言
-                asyncio.create_task(self._run_discussion())
+                # 传入 resume=True 以避免重复发送 phase_change 消息
+                asyncio.create_task(self._run_discussion(resume=True))
     
     async def _run_vote(self) -> None:
         """运行投票阶段"""
@@ -729,65 +768,82 @@ class GameController:
     
     async def _resolve_vote(self) -> None:
         """结算投票"""
-        executed_id, vote_count = self.engine.resolve_vote()
-        game_state = self.engine.game_state
-        
-        if not game_state:
-            return
-        
-        # 发送投票结果
-        vote_details = [
-            {"target_id": tid, "votes": count}
-            for tid, count in vote_count.items()
-        ]
-        
-        if executed_id:
-            executed = game_state.get_player(executed_id)
-            await self.send_message("vote_result", {
-                "executed_id": executed_id,
-                "executed_name": executed.name if executed else "未知",
-                "vote_details": vote_details,
-                "is_tie": False
-            })
+        try:
+            executed_id, vote_count = self.engine.resolve_vote()
+            game_state = self.engine.game_state
             
-            # 播报处决结果
-            await self.send_message("announcement", {
-                "content": f"{executed.name} 被公投出局"
-            })
-            await asyncio.sleep(4)
-            
-            # 检查猎人
-            if executed and executed.role == RoleType.HUNTER:
-                game_state.phase = GamePhase.HUNTER_SHOOT
-                await self._hunter_shoot()
+            if not game_state:
                 return
-        else:
-            await self.send_message("vote_result", {
-                "executed_id": None,
-                "executed_name": None,
-                "vote_details": vote_details,
-                "is_tie": True,
-                "message": "平票，直接进入夜晚"
-            })
             
-            # 播报平票
-            await self.send_message("announcement", {
-                "content": "平票，无人出局"
-            })
-            await asyncio.sleep(3)
+            # 发送投票结果
+            vote_details = [
+                {"target_id": tid, "votes": count}
+                for tid, count in vote_count.items()
+            ]
             
-        
-        # 检查游戏结束
-        result = game_state.check_game_over()
-        if result != GameResult.ONGOING:
-            game_state.phase = GamePhase.GAME_OVER
-            await self._game_over()
-            return
-        
-        # 进入夜晚
-        self.engine.after_vote()
-        # 使用 create_task 避免阻塞
-        asyncio.create_task(self._run_night_phase())
+            if executed_id:
+                executed = game_state.get_player(executed_id)
+                await self.send_message("vote_result", {
+                    "executed_id": executed_id,
+                    "executed_name": executed.name if executed else "未知",
+                    "vote_details": vote_details,
+                    "is_tie": False
+                })
+                
+                # 播报处决结果
+                await self.send_message("announcement", {
+                    "content": f"{executed.name} 被公投出局"
+                })
+                await asyncio.sleep(4)
+                
+                # 检查猎人
+                if executed and executed.role == RoleType.HUNTER:
+                    game_state.phase = GamePhase.HUNTER_SHOOT
+                    # 使用 create_task 避免阻塞
+                    asyncio.create_task(self._hunter_shoot())
+                    return
+            else:
+                await self.send_message("vote_result", {
+                    "executed_id": None,
+                    "executed_name": None,
+                    "vote_details": vote_details,
+                    "is_tie": True,
+                    "message": "平票，直接进入夜晚"
+                })
+                
+                # 播报平票
+                await self.send_message("announcement", {
+                    "content": "平票，无人出局"
+                })
+                await asyncio.sleep(3)
+                
+            
+            # 检查游戏结束
+            # 强制重新检查状态，确保数据最新
+            alive_wolves = len(game_state.get_alive_wolves())
+            alive_villagers = len(game_state.get_alive_villagers())
+            print(f"DEBUG: Vote resolved. Executed: {executed_id}. Wolves: {alive_wolves}, Villagers: {alive_villagers}")
+            
+            result = game_state.check_game_over()
+            print(f"DEBUG: check_game_over result: {result}")
+            
+            if result != GameResult.ONGOING:
+                print("DEBUG: Game Over triggered in _resolve_vote, calling _game_over")
+                game_state.phase = GamePhase.GAME_OVER
+                await self._game_over()
+                return
+            
+            # 只有在游戏未结束且非猎人开枪阶段才进入夜晚
+            if game_state.phase != GamePhase.HUNTER_SHOOT:
+                # 进入夜晚
+                print("DEBUG: Entering night phase from _resolve_vote")
+                self.engine.after_vote()
+                # 使用 create_task 避免阻塞
+                asyncio.create_task(self._run_night_phase())
+        except Exception as e:
+            print(f"ERROR in _resolve_vote: {e}")
+            import traceback
+            traceback.print_exc()
     
     async def _hunter_shoot(self) -> None:
         """猎人开枪阶段"""
@@ -941,9 +997,14 @@ class GameController:
             content = data.get("content", "")
             await self.handle_speech(content)
         
+        elif action == "start_vote":
+            # 真实玩家触发开始投票
+            # 使用 create_task 避免阻塞
+            asyncio.create_task(self.handle_start_vote())
+        
         elif action == "vote":
             target_id = data.get("target_id")
-            if target_id:
+            if target_id is not None:
                 await self.handle_vote(target_id)
         
         elif action == "hunter_shoot":
@@ -953,31 +1014,39 @@ class GameController:
     
     async def _game_over(self) -> None:
         """游戏结束"""
+        print("DEBUG: _game_over called")
         game_state = self.engine.game_state
         if not game_state:
+            print("DEBUG: _game_over failed - no game state")
             return
         
-        # 揭示所有玩家角色
-        roles = [
-            {
-                "id": p.id,
-                "name": p.name,
-                "role": p.role.value if p.role else None,
-                "role_name": RoleAction.get_role_name(p.role) if p.role else "未知",
-                "is_alive": p.is_alive()
-            }
-            for p in game_state.players
-        ]
-        
-        await self.send_message("game_over", {
-            "result": game_state.result.value,
-            "winner": "狼人" if game_state.result == GameResult.WOLVES_WIN else "好人",
-            "roles": roles,
-            "message": self.engine.get_game_status_message()
-        })
-        
-        # 播报游戏结束
-        winner_text = "狼人胜利" if game_state.result == GameResult.WOLVES_WIN else "好人胜利"
-        await self.send_message("announcement", {
-            "content": f"游戏结束 - {winner_text}"
-        })
+        try:
+            # 揭示所有玩家角色
+            roles = [
+                {
+                    "id": p.id,
+                    "name": p.name,
+                    "role": p.role.value if p.role else None,
+                    "role_name": RoleAction.get_role_name(p.role) if p.role else "未知",
+                    "is_alive": p.is_alive(),
+                    "death_reason": p.death_reason
+                }
+                for p in game_state.players
+            ]
+            
+            await self.send_message("game_over", {
+                "result": game_state.result.value,
+                "winner": "狼人" if game_state.result == GameResult.WOLVES_WIN else "好人",
+                "roles": roles,
+                "message": self.engine.get_game_status_message()
+            })
+            
+            # 播报游戏结束
+            winner_text = "狼人胜利" if game_state.result == GameResult.WOLVES_WIN else "好人胜利"
+            await self.send_message("announcement", {
+                "content": f"游戏结束 - {winner_text}"
+            })
+        except Exception as e:
+            print(f"ERROR in _game_over: {e}")
+            import traceback
+            traceback.print_exc()

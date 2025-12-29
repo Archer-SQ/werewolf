@@ -10,9 +10,9 @@
   box-shadow: var(--shadow-md);
   animation: slide-up 0.3s ease-out;
   max-width: 800px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 20px; /* 增加整体垂直间距 */
 }
 
@@ -50,10 +50,10 @@
 }
 
 .targets-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-wrap: nowrap;
   gap: 16px;
-  justify-content: start; /* 虽然是 grid，但确保内容靠前 */
+  justify-content: center;
   margin-bottom: 24px;
   width: 100%;
   max-width: 500px; /* 4 * 100 + 3 * 16 + padding */
@@ -137,7 +137,6 @@
   justify-content: center;
   margin-top: 32px;
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .action-btn {

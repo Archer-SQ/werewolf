@@ -18,6 +18,10 @@ interface ChatPanelProps {
     humanPlayerId: number | null;
     /** 发言回调 */
     onSpeak?: (content: string) => void;
+    /** 开始投票回调 */
+    onStartVote?: () => void;
+    /** 是否需要开始投票 */
+    isStartVoteRequired?: boolean;
 }
 
 /**
@@ -28,7 +32,9 @@ export function ChatPanel({
     currentSpeaker,
     isHumanTurn,
     humanPlayerId,
-    onSpeak
+    onSpeak,
+    onStartVote,
+    isStartVoteRequired = false
 }: ChatPanelProps) {
     const [inputValue, setInputValue] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -89,12 +95,20 @@ export function ChatPanel({
             </div>
 
             {/* 底部保留位置，用于输入框或状态条 */}
-            <div className={`input-area-wrapper ${isHumanTurn ? 'highlight' : ''}`}>
-                {isHumanTurn ? (
+            <div className={`input-area-wrapper ${isHumanTurn || isStartVoteRequired ? 'highlight' : ''}`}>
+                {isStartVoteRequired ? (
                     <div className="human-input-area animate-slide-up">
-                        <div className="input-header">
-                            <span className="input-label">轮到你发言了</span>
+                        <div className="input-box">
+                            <button
+                                className="send-button full-width"
+                                onClick={onStartVote}
+                            >
+                                🗳️ 开始投票
+                            </button>
                         </div>
+                    </div>
+                ) : isHumanTurn ? (
+                    <div className="human-input-area animate-slide-up">
                         <div className="input-box">
                             <input
                                 type="text"

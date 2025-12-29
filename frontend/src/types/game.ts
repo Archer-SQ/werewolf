@@ -35,6 +35,7 @@ export interface Player {
   status: PlayerStatus;
   isHuman: boolean;
   isAlive: boolean;
+  deathReason?: string;
 }
 
 /** 发言记录 */
@@ -97,6 +98,7 @@ export type ActionType =
   | 'witch_action'
   | 'speak'
   | 'vote'
+  | 'start_vote'
   | 'hunter_shoot'
   | 'wait'
   | 'confirm_result';

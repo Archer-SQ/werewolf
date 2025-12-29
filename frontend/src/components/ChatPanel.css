@@ -50,20 +50,20 @@
 
 /* 自定义滚动条样式 */
 .panel-content::-webkit-scrollbar {
-    width: 6px;
+  width: 6px;
 }
 
 .panel-content::-webkit-scrollbar-track {
-    background: transparent;
+  background: transparent;
 }
 
 .panel-content::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
 }
 
 .panel-content::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .message-list {
@@ -163,7 +163,8 @@
 
 /* 底部输入区 */
 .input-area-wrapper {
-  padding: 12px;
+  height: 60px;
+  padding: 0 12px;
   background: var(--color-bg-card);
   border-top: 1px solid var(--border-color);
   flex-shrink: 0;
@@ -171,7 +172,9 @@
 
 .human-input-area {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
   gap: 8px;
 }
 
@@ -189,7 +192,9 @@
 }
 
 .input-box {
+  flex: 1 1 auto;
   display: flex;
+  height: 40px;
   gap: 8px;
 }
 
@@ -219,6 +224,10 @@
   transition: opacity 0.2s;
 }
 
+.send-button.full-width {
+  width: 100%;
+}
+
 .send-button:hover:not(:disabled) {
   opacity: 0.9;
 }
@@ -233,9 +242,9 @@
 .status-bar {
   text-align: center;
   padding: 8px;
+  height: 100%;
   font-size: 0.85rem;
   color: var(--color-text-secondary);
-  background: rgba(0, 0, 0, 0.1);
   border-radius: 4px;
   display: flex;
   justify-content: center;
@@ -248,13 +257,26 @@
 }
 
 @keyframes pulse-scale {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.2); opacity: 0.8; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
 }
 
 @keyframes slide-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-slide-in {

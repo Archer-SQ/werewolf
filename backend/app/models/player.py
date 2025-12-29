@@ -52,6 +52,7 @@ class Player(BaseModel):
     is_human: bool = Field(default=False, description="是否为真实玩家")
     has_voted: bool = Field(default=False, description="是否已投票")
     vote_target: Optional[int] = Field(None, description="投票目标")
+    death_reason: Optional[str] = Field(None, description="死亡原因")
     
     def is_alive(self) -> bool:
         """检查玩家是否存活"""
@@ -65,17 +66,19 @@ class Player(BaseModel):
         """检查玩家是否为好人阵营"""
         return self.role != RoleType.WEREWOLF
     
-    def kill(self, by_poison: bool = False) -> None:
+    def kill(self, by_poison: bool = False, reason: str = "死亡") -> None:
         """
         击杀玩家
         
         Args:
             by_poison: 是否被女巫毒死
+            reason: 死亡原因描述
         """
         if by_poison:
             self.status = PlayerStatus.POISONED
         else:
             self.status = PlayerStatus.DEAD
+        self.death_reason = reason
     
     def reset_vote(self) -> None:
         """重置投票状态"""

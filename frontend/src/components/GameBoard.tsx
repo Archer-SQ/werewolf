@@ -187,7 +187,6 @@ export function GameBoard({
                             <PlayerCard
                                 key={player.id}
                                 player={player}
-                                isSpeaking={currentSpeaker === player.id && thinkingPlayerId !== player.id}
                                 isThinking={thinkingPlayerId === player.id}
                                 isVotingThinking={
                                     phase === 'day_vote' && 
@@ -257,7 +256,7 @@ export function GameBoard({
                                 </div>
                             </div>
                         </div>
-                    ) : actionRequired && actionRequired.action !== 'speak' && !isNight ? (
+                    ) : actionRequired && actionRequired.action !== 'speak' && actionRequired.action !== 'start_vote' && !isNight ? (
                         /* 白天操作面板（如投票） */
                         <ActionPanel
                             action={actionRequired}
@@ -274,6 +273,8 @@ export function GameBoard({
                             isHumanTurn={isHumanTurn}
                             humanPlayerId={humanPlayerId}
                             onSpeak={onSpeak}
+                            onStartVote={() => onAction('start_vote', {})}
+                            isStartVoteRequired={actionRequired?.action === 'start_vote'}
                         />
                     )}
                 </section>

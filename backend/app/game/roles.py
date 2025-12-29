@@ -204,7 +204,7 @@ class HunterAction:
             hunter.role == RoleType.HUNTER and
             hunter.status in [PlayerStatus.DEAD, PlayerStatus.POISONED] and
             target.is_alive()):
-            target.kill()
+            target.kill(reason="被猎人带走")
             return True
         return False
     

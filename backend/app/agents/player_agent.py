@@ -140,6 +140,8 @@ class PlayerAgent:
                     )
 
                     if response.status_code == 200:
+                         # 打印原生响应数据用于调试
+                        print(f"DEBUG: LLM Response Raw Data: {response}")
                         # 记录思考过程（如果模型支持）
                         message = response.output.choices[0].message
                         # 只有在启用思考时才尝试获取 reasoning_content
