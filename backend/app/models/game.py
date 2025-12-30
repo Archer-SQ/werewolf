@@ -23,6 +23,7 @@ class GamePhase(str, Enum):
     DAY = "day"                  # 白天
     DAY_DISCUSS = "day_discuss"  # 白天讨论
     DAY_VOTE = "day_vote"        # 白天投票
+    LAST_WORDS = "last_words"    # 发表遗言
     HUNTER_SHOOT = "hunter_shoot"  # 猎人开枪
     GAME_OVER = "game_over"      # 游戏结束
 
@@ -149,8 +150,15 @@ class GameState(BaseModel):
             self.result = GameResult.VILLAGERS_WIN
             return GameResult.VILLAGERS_WIN
         
-        # 狼人数量 >= 好人数量，狼人胜利
+        # 狼人数量 >= 好人数量
         if alive_wolves >= alive_villagers:
+            # 特殊情况：如果当前是猎人开枪阶段，且猎人刚死还未开枪
+            # 此时即使人数相等，游戏也不应该结束，因为猎人可能带走狼人
+            if self.phase == GamePhase.HUNTER_SHOOT:
+                # 再次确认是否有猎人死亡且未开枪（这里简化逻辑，只要是 HUNTER_SHOOT 阶段就不判负）
+                # 严格来说应该检查具体的猎人状态，但 Phase 已经是 HUNTER_SHOOT 说明正在等待开枪
+                return GameResult.ONGOING
+                
             self.result = GameResult.WOLVES_WIN
             return GameResult.WOLVES_WIN
         

@@ -77,10 +77,29 @@ class PlayerAgent:
             for p in game_state.get_alive_players()
         ]
         dead_players = [
-            {"id": p.id, "name": p.name}
+            {"id": p.id, "name": p.name, "reason": p.death_reason or "未知"}
             for p in game_state.players
             if not p.is_alive()
         ]
+        
+        # 格式化死亡信息，包含死因
+        # 注意：对于普通 AI 玩家，只能知道公开的死因（被投票出局、被猎人带走）
+        # 对于夜晚死亡（被狼杀、被毒），只能知道是"昨晚死亡"，不能知道具体原因（除非是狼人知道自己刀了谁，或者女巫知道自己毒了谁，但这部分逻辑在 known_info 中处理）
+        # 这里为了防止 AI 上帝视角，统一对夜晚死亡模糊处理
+        def format_dead_player_list(players: List[dict]) -> str:
+            if not players:
+                return "暂无"
+            
+            result = []
+            for p in players:
+                reason = p['reason']
+                # 隐藏夜晚具体的死因
+                if reason in ["被狼人杀害", "被女巫毒死"]:
+                    reason = "昨晚死亡"
+                
+                result.append(f"{p['name']}（{p['id']}号，死因：{reason}）")
+            
+            return ", ".join(result)
         
         # 狼人队友信息
         teammate_info = ""
@@ -102,7 +121,7 @@ class PlayerAgent:
             role_description=RoleAction.get_role_description(self.player.role) if self.player.role else "",
             round=game_state.round,
             alive_players=format_player_list(alive_players),
-            dead_players=format_player_list(dead_players) if dead_players else "暂无",
+            dead_players=format_dead_player_list(dead_players) if dead_players else "暂无",
             teammate_info=teammate_info
         )
     

@@ -446,6 +446,12 @@ class GameController:
                     "content": f"昨晚 {', '.join(died_names)} 倒牌了"
                 })
                  await asyncio.sleep(4)
+                 
+                 # 首夜死亡有遗言
+                 if game_state.round == 1:
+                     dead_players = [p for p in game_state.players if p.name in died_names and not p.is_alive()]
+                     for player in dead_players:
+                         await self._handle_last_words(player.id)
             else:
                  await asyncio.sleep(2)
                  await self.send_message("announcement", {
@@ -552,10 +558,13 @@ class GameController:
                     speech = await self.agents[speaker_id].generate_speech(game_state)
                     game_state.add_speech(speaker_id, speech)
                     
+                    # 确保发送的 player_speech 包含当前的 round 信息
+                    # 这样前端才能正确检测轮次变化
                     await self.send_message("player_speech", {
                         "speaker_id": speaker_id,
                         "speaker_name": speaker.name,
-                        "content": speech
+                        "content": speech,
+                        "round": game_state.round
                     })
                 
                 # 切换到下一个发言者
@@ -611,9 +620,15 @@ class GameController:
             await self.send_message("player_speech", {
                 "speaker_id": speaker_id,
                 "speaker_name": speaker.name,
-                "content": content
+                "content": content,
+                "round": game_state.round
             })
             
+            # 如果正在等待遗言，触发事件并返回
+            if hasattr(self, '_waiting_for_speech') and self._waiting_for_speech:
+                self._waiting_for_speech.set()
+                return
+
             # 切换到下一个发言者
             next_speaker = self.engine.next_speaker()
             
@@ -781,6 +796,10 @@ class GameController:
                 for tid, count in vote_count.items()
             ]
             
+            # 立即检查游戏是否结束（基于投票后的状态）
+            result = game_state.check_game_over()
+            print(f"DEBUG: Vote resolved. Executed: {executed_id}. check_game_over result: {result}")
+            
             if executed_id:
                 executed = game_state.get_player(executed_id)
                 await self.send_message("vote_result", {
@@ -795,13 +814,6 @@ class GameController:
                     "content": f"{executed.name} 被公投出局"
                 })
                 await asyncio.sleep(4)
-                
-                # 检查猎人
-                if executed and executed.role == RoleType.HUNTER:
-                    game_state.phase = GamePhase.HUNTER_SHOOT
-                    # 使用 create_task 避免阻塞
-                    asyncio.create_task(self._hunter_shoot())
-                    return
             else:
                 await self.send_message("vote_result", {
                     "executed_id": None,
@@ -817,21 +829,26 @@ class GameController:
                 })
                 await asyncio.sleep(3)
                 
-            
-            # 检查游戏结束
-            # 强制重新检查状态，确保数据最新
-            alive_wolves = len(game_state.get_alive_wolves())
-            alive_villagers = len(game_state.get_alive_villagers())
-            print(f"DEBUG: Vote resolved. Executed: {executed_id}. Wolves: {alive_wolves}, Villagers: {alive_villagers}")
-            
-            result = game_state.check_game_over()
-            print(f"DEBUG: check_game_over result: {result}")
-            
+                # 2. 如果游戏结束，直接结算，跳过遗言和后续
             if result != GameResult.ONGOING:
                 print("DEBUG: Game Over triggered in _resolve_vote, calling _game_over")
                 game_state.phase = GamePhase.GAME_OVER
                 await self._game_over()
                 return
+
+            # 3. 游戏未结束，处理遗言
+            if executed_id:
+                # 发表遗言
+                await self._handle_last_words(executed_id)
+                
+                # 检查猎人
+                executed = game_state.get_player(executed_id)
+                if executed and executed.role == RoleType.HUNTER:
+                    game_state.phase = GamePhase.HUNTER_SHOOT
+                    # 使用 create_task 避免阻塞
+                    # 标记触发来源为投票阶段
+                    asyncio.create_task(self._hunter_shoot(is_day_vote=True))
+                    return
             
             # 只有在游戏未结束且非猎人开枪阶段才进入夜晚
             if game_state.phase != GamePhase.HUNTER_SHOOT:
@@ -845,11 +862,108 @@ class GameController:
             import traceback
             traceback.print_exc()
     
-    async def _hunter_shoot(self) -> None:
-        """猎人开枪阶段"""
+    async def _handle_last_words(self, player_id: int) -> None:
+        """
+        处理发表遗言环节
+        
+        Args:
+            player_id: 发表遗言的玩家ID
+        """
         game_state = self.engine.game_state
         if not game_state:
             return
+            
+        player = game_state.get_player(player_id)
+        if not player:
+            return
+            
+        # 切换游戏阶段到遗言阶段
+        # 这很重要，因为：
+        # 1. 前端会根据 phase_change 清除之前的 action_required (如"等待投票")
+        # 2. 前端收到 player_speech 时会记录当前的 phase，用于显示"遗言"标签
+        game_state.phase = GamePhase.LAST_WORDS
+        await self.send_message("phase_change", {
+            "phase": "last_words",
+            "message": "请发表遗言"
+        })
+            
+        # 广播：请发表遗言
+        await self.send_message("announcement", {
+            "content": f"请 {player.name} 发表遗言"
+        })
+        await asyncio.sleep(2)
+        
+        await self.send_message("speaker_turn", {
+            "speaker_id": player_id,
+            "speaker_name": player.name,
+            "is_human": player.is_human,
+            "time_limit": 30,
+            "is_last_words": True
+        })
+        
+        if player.is_human:
+            await self.send_message("action_required", {
+                "action": "speak",
+                "message": "请发表遗言（30秒）",
+                "time_limit": 30
+            })
+            
+            # 使用 Event 等待玩家遗言，或超时
+            self._waiting_for_speech = asyncio.Event()
+            try:
+                # 等待 35 秒（比前端 30 秒稍长）
+                await asyncio.wait_for(self._waiting_for_speech.wait(), timeout=35.0)
+            except asyncio.TimeoutError:
+                # 超时未发言，自动跳过
+                pass
+            finally:
+                self._waiting_for_speech = None
+                
+        else:
+            # AI 发表遗言
+            if player_id in self.agents:
+                await self.send_message("thinking_start", {
+                    "player_id": player_id,
+                    "action": "speak"
+                })
+                await asyncio.sleep(random.uniform(1.0, 2.0))
+                
+                # 使用 generate_speech 生成遗言，也可以专门写个 generate_last_words
+                speech = await self.agents[player_id].generate_speech(game_state)
+                # 可以在 speech 前加个前缀表示是遗言
+                
+                await self.send_message("player_speech", {
+                    "speaker_id": player_id,
+                    "speaker_name": player.name,
+                    "content": speech,
+                    "round": game_state.round
+                })
+                await asyncio.sleep(2)
+                
+                # 遗言结束，等待真实玩家确认进入夜晚
+                # 这样玩家有时间看完遗言，不会自动跳走
+                await self.send_message("action_required", {
+                    "action": "enter_night",
+                    "message": "遗言结束，请点击按钮进入夜晚"
+                })
+                
+                self._waiting_for_night_start = asyncio.Event()
+                await self._waiting_for_night_start.wait()
+                self._waiting_for_night_start = None
+
+    async def _hunter_shoot(self, is_day_vote: bool = False) -> None:
+        """
+        猎人开枪阶段
+        
+        Args:
+            is_day_vote: 是否是在白天投票阶段触发的（决定开枪后的流程流转）
+        """
+        game_state = self.engine.game_state
+        if not game_state:
+            return
+        
+        # 记录触发来源，供 handle_hunter_shoot 使用
+        self._hunter_trigger_source = "day_vote" if is_day_vote else "night_death"
         
         # 找到刚死亡的猎人
         hunters = [p for p in game_state.players 
@@ -884,10 +998,16 @@ class GameController:
                 await self._game_over()
             else:
                 # 继续之前的流程
-                if game_state.phase == GamePhase.HUNTER_SHOOT:
-                    game_state.phase = GamePhase.DAY_DISCUSS
-                    self.engine.setup_speaking_order()
-                    await self._run_discussion()
+                trigger_source = getattr(self, '_hunter_trigger_source', 'night_death')
+                
+                if trigger_source == 'day_vote':
+                    self.engine.after_vote()
+                    asyncio.create_task(self._run_night_phase())
+                else:
+                    if game_state.phase == GamePhase.HUNTER_SHOOT:
+                        game_state.phase = GamePhase.DAY_DISCUSS
+                        self.engine.setup_speaking_order()
+                        await self._run_discussion()
     
     async def handle_hunter_shoot(self, target_id: int) -> None:
         """处理真实玩家猎人开枪"""
@@ -907,15 +1027,34 @@ class GameController:
             })
             
             # 检查游戏结束
+            # 强制重新检查状态，确保数据最新
+            alive_wolves = len(game_state.get_alive_wolves())
+            alive_villagers = len(game_state.get_alive_villagers())
+            print(f"DEBUG: Hunter shoot resolved. Executed: {target_id}. Wolves: {alive_wolves}, Villagers: {alive_villagers}")
+            
             result = game_state.check_game_over()
+            print(f"DEBUG: check_game_over result: {result}")
+            
             if result != GameResult.ONGOING:
+                print("DEBUG: Game Over triggered in handle_hunter_shoot")
+                game_state.phase = GamePhase.GAME_OVER
                 await self._game_over()
             else:
                 # 继续之前的流程
-                # 猎人开枪后，如果在白天，继续讨论
-                game_state.phase = GamePhase.DAY_DISCUSS
-                self.engine.setup_speaking_order()
-                await self._run_discussion()
+                # 根据触发来源决定后续流程
+                trigger_source = getattr(self, '_hunter_trigger_source', 'night_death')
+                
+                if trigger_source == 'day_vote':
+                    # 如果是白天投票死的，开完枪直接进入夜晚
+                    print("DEBUG: Hunter shot after day vote, entering night phase")
+                    self.engine.after_vote()
+                    asyncio.create_task(self._run_night_phase())
+                else:
+                    # 如果是夜晚死的，开完枪继续白天讨论
+                    print("DEBUG: Hunter shot after night death, continuing day discussion")
+                    game_state.phase = GamePhase.DAY_DISCUSS
+                    self.engine.setup_speaking_order()
+                    await self._run_discussion()
     
     async def handle_action(self, action: str, data: dict) -> None:
         """
@@ -1006,6 +1145,10 @@ class GameController:
             target_id = data.get("target_id")
             if target_id is not None:
                 await self.handle_vote(target_id)
+        
+        elif action == "enter_night":
+            if hasattr(self, '_waiting_for_night_start') and self._waiting_for_night_start:
+                self._waiting_for_night_start.set()
         
         elif action == "hunter_shoot":
             target_id = data.get("target_id")

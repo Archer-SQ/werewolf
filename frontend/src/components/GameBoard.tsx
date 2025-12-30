@@ -256,7 +256,7 @@ export function GameBoard({
                                 </div>
                             </div>
                         </div>
-                    ) : actionRequired && actionRequired.action !== 'speak' && actionRequired.action !== 'start_vote' && !isNight ? (
+                    ) : actionRequired && actionRequired.action !== 'speak' && actionRequired.action !== 'start_vote' && actionRequired.action !== 'enter_night' && !isNight ? (
                         /* 白天操作面板（如投票） */
                         <ActionPanel
                             action={actionRequired}
@@ -275,6 +275,8 @@ export function GameBoard({
                             onSpeak={onSpeak}
                             onStartVote={() => onAction('start_vote', {})}
                             isStartVoteRequired={actionRequired?.action === 'start_vote'}
+                            onEnterNight={() => onAction('enter_night', {})}
+                            isEnterNightRequired={actionRequired?.action === 'enter_night'}
                         />
                     )}
                 </section>

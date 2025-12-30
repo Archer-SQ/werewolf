@@ -17,6 +17,7 @@ export type GamePhase =
   | 'day'
   | 'day_discuss'
   | 'day_vote'
+  | 'last_words'
   | 'hunter_shoot'
   | 'game_over';
 
@@ -99,6 +100,7 @@ export type ActionType =
   | 'speak'
   | 'vote'
   | 'start_vote'
+  | 'enter_night'
   | 'hunter_shoot'
   | 'wait'
   | 'confirm_result';

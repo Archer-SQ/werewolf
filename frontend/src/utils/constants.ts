@@ -4,11 +4,27 @@
  * 定义前端使用的常量
  */
 
+/** 
+ * 动态获取后端服务地址
+ * 如果是本地开发环境 (localhost)，尝试连接局域网 IP
+ * 否则使用 location.hostname
+ */
+const getBaseUrl = () => {
+    // 获取当前页面访问的主机名（例如 'localhost' 或 '192.168.1.5'）
+    const hostname = window.location.hostname;
+    return `http://${hostname}:8000`;
+};
+
+const getWsUrl = () => {
+    const hostname = window.location.hostname;
+    return `ws://${hostname}:8000/ws`;
+};
+
 /** 后端服务地址 */
-export const API_BASE_URL = 'http://localhost:8000';
+export const API_BASE_URL = getBaseUrl();
 
 /** WebSocket 地址 */
-export const WS_URL = 'ws://localhost:8000/ws';
+export const WS_URL = getWsUrl();
 
 /** 发言时间限制（秒） */
 export const SPEECH_TIME_LIMIT = 30;

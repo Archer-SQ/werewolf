@@ -84,7 +84,7 @@ interface UseGameReturn extends GameData {
  * 游戏状态管理 Hook
  */
 export function useGame(): UseGameReturn {
-    const { isConnected, lastMessage, sendMessage, connect } = useWebSocket();
+    const { isConnected, sendMessage, connect, messageQueue, clearQueue } = useWebSocket();
 
     const [gameData, setGameData] = useState<GameData>({
         gameId: null,
@@ -134,293 +134,302 @@ export function useGame(): UseGameReturn {
     }, []);
 
     /**
-     * 处理 WebSocket 消息
+     * 处理 WebSocket 消息队列
+     * 替代原有的单消息处理，确保高并发消息不丢失
      */
     useEffect(() => {
-        if (!lastMessage) return;
+        if (messageQueue.length === 0) return;
 
-        const { type, data } = lastMessage;
+        // 批量处理队列中的所有消息
+        messageQueue.forEach(message => {
+            const { type, data } = message;
 
-        switch (type) {
-            case 'announcement':
-                // 如果是"请闭眼"类的公告，说明当前阶段结束，清除操作面板
-                if (data.content && (data.content as string).includes('请闭眼')) {
+            switch (type) {
+                case 'announcement':
+                    // 如果是"请闭眼"类的公告，说明当前阶段结束，清除操作面板
+                    if (data.content && (data.content as string).includes('请闭眼')) {
+                        setGameData(prev => ({
+                            ...prev,
+                            announcement: data.content as string,
+                            actionRequired: null // 强制清除操作面板
+                        }));
+                    } else {
+                        setGameData(prev => ({
+                            ...prev,
+                            announcement: data.content as string
+                        }));
+                    }
+                    break;
+
+                case 'reset_vote':
+                    // 重置投票状态：所有存活玩家进入投票思考状态，已投票列表清空
                     setGameData(prev => ({
                         ...prev,
-                        announcement: data.content as string,
-                        actionRequired: null // 强制清除操作面板
+                        votedPlayerIds: [],
+                        votingThinkingPlayerIds: prev.players
+                            .filter(p => p.status === 'alive' && p.isAlive) // 确保只选存活玩家
+                            .map(p => p.id) 
                     }));
-                } else {
+                    break;
+
+                case 'game_created':
                     setGameData(prev => ({
                         ...prev,
-                        announcement: data.content as string
-                    }));
-                }
-                break;
-
-            case 'reset_vote':
-                // 重置投票状态：所有存活玩家进入投票思考状态，已投票列表清空
-                setGameData(prev => ({
-                    ...prev,
-                    votedPlayerIds: [],
-                    votingThinkingPlayerIds: prev.players
-                        .filter(p => p.status === 'alive' && p.isAlive) // 确保只选存活玩家
-                        .map(p => p.id) 
-                }));
-                break;
-
-            case 'game_created':
-                setGameData(prev => ({
-                    ...prev,
-                    gameId: data.game_id as string,
-                    players: (data.players as Array<{ id: number; name: string; is_human: boolean }>).map(p => ({
-                        id: Number(p.id),
-                        name: p.name,
-                        isHuman: p.is_human,
-                        status: 'alive' as const,
-                        isAlive: true
-                    })),
-                    systemMessages: [...prev.systemMessages, '游戏房间已创建']
-                }));
-                break;
-
-            case 'role_assigned':
-                setGameData(prev => ({
-                    ...prev,
-                    humanPlayerId: Number(data.player_id),
-                    humanRole: data.role as RoleType,
-                    humanRoleName: data.role_name as string,
-                    roleDescription: data.role_description as string,
-                    isGameRunning: true, // 确保收到角色分配也能进入游戏
-                    systemMessages: [...prev.systemMessages, `你的身份是：${data.role_name}`],
-                    teammates: data.teammates ? (data.teammates as unknown[]).map(id => Number(id)) : []
-                }));
-                break;
-
-            case 'game_started':
-                setGameData(prev => ({
-                    ...prev,
-                    round: data.round as number,
-                    phase: data.phase as GamePhase,
-                    isGameRunning: true,
-                    systemMessages: [...prev.systemMessages, '游戏开始！']
-                }));
-                break;
-
-            case 'phase_change':
-                setGameData(prev => ({
-                    ...prev,
-                    phase: data.phase as GamePhase,
-                    isGameRunning: true, // 容错：确保进入游戏
-                    systemMessages: [...prev.systemMessages, data.message as string],
-                    actionRequired: null,
-                    currentSpeaker: null, // 切换阶段时清除发言者状态
-                    votedPlayerIds: [], // 切换阶段清除投票状态
-                    votingThinkingPlayerIds: [] // 切换阶段清除投票思考状态，具体的初始化由 reset_vote 消息处理
-                }));
-                break;
-
-            case 'action_required':
-                setGameData(prev => ({
-                    ...prev,
-                    // 如果是女巫行动，强制清除之前的预言家查验结果面板（如果还在）
-                    // 虽然 actionRequired 会被覆盖，但显式处理更清晰
-                    actionRequired: {
-                        action: data.action as ActionRequired['action'],
-                        message: data.message as string,
-                        validTargets: (data.valid_targets as unknown[] | undefined)?.map(id => Number(id)),
-                        timeLimit: data.time_limit as number | undefined,
-                        wolfTarget: data.wolf_target ? Number(data.wolf_target) : undefined,
-                        canSave: data.can_save as boolean | undefined,
-                        hasAntidote: data.has_antidote as boolean | undefined,
-                        hasPoison: data.has_poison as boolean | undefined,
-                        validPoisonTargets: (data.valid_poison_targets as unknown[] | undefined)?.map(id => Number(id)),
-                        teammates: (data.teammates as unknown[] | undefined)?.map(id => Number(id))
-                    }
-                }));
-                break;
-
-            case 'speaker_turn':
-                setGameData(prev => ({
-                    ...prev,
-                    currentSpeaker: Number(data.speaker_id),
-                    systemMessages: [...prev.systemMessages,
-                    `${data.speaker_name} (${data.speaker_id}号) 开始发言`
-                    ]
-                }));
-                break;
-
-            case 'thinking_start': {
-                const isVoting = data.action === 'vote';
-                const playerId = Number(data.player_id);
-                
-                if (isVoting) {
-                    // 投票思考状态已在 reset_vote 中统一初始化，这里不需要额外操作
-                    // 或者如果需要精确控制，可以确认该 ID 在列表中
-                    return;
-                }
-
-                setGameData(prev => ({
-                    ...prev,
-                    thinkingPlayerId: playerId
-                }));
-                break;
-            }
-
-            case 'player_voted':
-                setGameData(prev => {
-                    const votedId = Number(data.player_id);
-                    // 确保不重复添加
-                    if (prev.votedPlayerIds?.includes(votedId)) {
-                        return prev;
-                    }
-                    console.log(`Player ${votedId} voted. Updating state.`);
-                    return {
-                        ...prev,
-                        votingThinkingPlayerIds: (prev.votingThinkingPlayerIds || []).filter(id => id !== votedId), // 移除思考状态
-                        votedPlayerIds: [...(prev.votedPlayerIds || []), votedId]
-                    };
-                });
-                break;
-
-            case 'night_action_change':
-                setGameData(prev => ({
-                    ...prev,
-                    nightActionMessage: data.message as string
-                }));
-                break;
-
-            case 'player_speech':
-                setGameData(prev => {
-                    // 确保不重复添加相同的发言（基于内容和发言者）
-                    // 增加更严格的重复检查，防止因为 React 状态合并导致的消息丢失
-                    const newSpeakerId = Number(data.speaker_id);
-                    const newContent = data.content as string;
-                    
-                    const isDuplicate = prev.speeches.some(s => 
-                        s.playerId === newSpeakerId && 
-                        s.content === newContent
-                    );
-
-                    if (isDuplicate) {
-                        return prev;
-                    }
-
-                    return {
-                        ...prev,
-                        thinkingPlayerId: null, // 发言时清除思考状态
-                        speeches: [...prev.speeches, {
-                            playerId: newSpeakerId,
-                            playerName: data.speaker_name as string,
-                            content: newContent,
-                            round: prev.round,
-                            phase: prev.phase
-                        }],
-                        // 只有当 actionRequired 存在且确实是 speak 类型时才清除
-                        // 这样可以避免意外清除其他类型的 action (如 start_vote)
-                        actionRequired: prev.actionRequired?.action === 'speak' ? null : prev.actionRequired
-                    };
-                });
-                break;
-
-            case 'night_result':
-                setGameData(prev => ({
-                    ...prev,
-                    nightMessages: data.messages as string[],
-                    systemMessages: [...prev.systemMessages, ...(data.messages as string[])],
-                    // 同步玩家状态（如死亡）
-                    players: data.players 
-                        ? (data.players as Array<{ id: number; name: string; is_human: boolean; is_alive: boolean; death_reason?: string }>).map(p => ({
+                        gameId: data.game_id as string,
+                        players: (data.players as Array<{ id: number; name: string; is_human: boolean }>).map(p => ({
                             id: Number(p.id),
                             name: p.name,
                             isHuman: p.is_human,
-                            status: p.is_alive ? 'alive' as const : 'dead' as const,
-                            isAlive: p.is_alive,
-                            deathReason: p.death_reason,
-                            role: prev.players.find(old => old.id === Number(p.id))?.role, // 保留已知角色
-                            roleName: prev.players.find(old => old.id === Number(p.id))?.roleName // 保留已知角色名
-                        }))
-                        : prev.players
-                }));
-                break;
-
-            case 'vote_result':
-                {
-                    const executedId = Number(data.executed_id);
-                    const msg = data.is_tie
-                        ? '平票，直接进入夜晚'
-                        : `${data.executed_name} 被投票出局`;
-                    setGameData(prev => ({
-                        ...prev,
-                        systemMessages: [...prev.systemMessages, msg],
-                        players: prev.players.map(p =>
-                            p.id === executedId
-                                ? { ...p, status: 'dead' as const, isAlive: false, deathReason: '被公投出局' }
-                                : p
-                        )
+                            status: 'alive' as const,
+                            isAlive: true
+                        })),
+                        systemMessages: [...prev.systemMessages, '游戏房间已创建']
                     }));
-                }
-                break;
+                    break;
 
-            case 'seer_result':
-                {
-                    const resultText = data.is_good ? '好人' : '狼人';
+                case 'role_assigned':
                     setGameData(prev => ({
                         ...prev,
+                        humanPlayerId: Number(data.player_id),
+                        humanRole: data.role as RoleType,
+                        humanRoleName: data.role_name as string,
+                        roleDescription: data.role_description as string,
+                        isGameRunning: true, // 确保收到角色分配也能进入游戏
+                        systemMessages: [...prev.systemMessages, `你的身份是：${data.role_name}`],
+                        teammates: data.teammates ? (data.teammates as unknown[]).map(id => Number(id)) : []
+                    }));
+                    break;
+
+                case 'game_started':
+                    setGameData(prev => ({
+                        ...prev,
+                        round: data.round as number,
+                        phase: data.phase as GamePhase,
+                        isGameRunning: true,
+                        systemMessages: [...prev.systemMessages, '游戏开始！']
+                    }));
+                    break;
+
+                case 'phase_change':
+                    setGameData(prev => ({
+                        ...prev,
+                        phase: data.phase as GamePhase,
+                        isGameRunning: true, // 容错：确保进入游戏
+                        systemMessages: [...prev.systemMessages, data.message as string],
+                        actionRequired: null,
+                        currentSpeaker: null, // 切换阶段时清除发言者状态
+                        votedPlayerIds: [], // 切换阶段清除投票状态
+                        votingThinkingPlayerIds: [] // 切换阶段清除投票思考状态，具体的初始化由 reset_vote 消息处理
+                    }));
+                    break;
+
+                case 'action_required':
+                    setGameData(prev => ({
+                        ...prev,
+                        // 如果是女巫行动，强制清除之前的预言家查验结果面板（如果还在）
+                        // 虽然 actionRequired 会被覆盖，但显式处理更清晰
+                        actionRequired: {
+                            action: data.action as ActionRequired['action'],
+                            message: data.message as string,
+                            validTargets: (data.valid_targets as unknown[] | undefined)?.map(id => Number(id)),
+                            timeLimit: data.time_limit as number | undefined,
+                            wolfTarget: data.wolf_target ? Number(data.wolf_target) : undefined,
+                            canSave: data.can_save as boolean | undefined,
+                            hasAntidote: data.has_antidote as boolean | undefined,
+                            hasPoison: data.has_poison as boolean | undefined,
+                            validPoisonTargets: (data.valid_poison_targets as unknown[] | undefined)?.map(id => Number(id)),
+                            teammates: (data.teammates as unknown[] | undefined)?.map(id => Number(id))
+                        }
+                    }));
+                    break;
+
+                case 'speaker_turn':
+                    setGameData(prev => ({
+                        ...prev,
+                        currentSpeaker: Number(data.speaker_id),
                         systemMessages: [...prev.systemMessages,
-                        `查验结果：${data.target_name} 是 ${resultText}`
+                        `${data.speaker_name} (${data.speaker_id}号) 开始发言`
                         ]
                     }));
-                    // 触发自定义事件通知 ActionPanel
-                    window.dispatchEvent(new CustomEvent('seer_result', { detail: data }));
-                }
-                break;
+                    break;
 
-            case 'hunter_shoot_result':
-                {
-                    const targetId = Number(data.target_id);
+                case 'thinking_start': {
+                    const isVoting = data.action === 'vote';
+                    const playerId = Number(data.player_id);
+                    
+                    if (isVoting) {
+                        // 投票思考状态已在 reset_vote 中统一初始化，这里不需要额外操作
+                        // 或者如果需要精确控制，可以确认该 ID 在列表中
+                        return;
+                    }
+
                     setGameData(prev => ({
                         ...prev,
-                        systemMessages: [...prev.systemMessages,
-                        `猎人带走了 ${data.target_name}`
-                        ],
-                        players: prev.players.map(p =>
-                            p.id === targetId
-                                ? { ...p, status: 'dead' as const, isAlive: false, deathReason: '被猎人带走' }
-                                : p
-                        )
+                        thinkingPlayerId: playerId
                     }));
+                    break;
                 }
-                break;
 
-            case 'game_over':
-                setGameData(prev => ({
-                    ...prev,
-                    phase: 'game_over',
-                    result: data.result as GameResult,
-                    isGameRunning: true, // 保持为 true 以显示游戏结束面板
-                    players: (data.roles as Array<{
-                        id: number;
-                        name: string;
-                        role: RoleType;
-                        role_name: string;
-                        is_alive: boolean;
-                        death_reason?: string;
-                    }>).map(r => ({
-                        id: Number(r.id),
-                        name: r.name,
-                        role: r.role,
-                        roleName: r.role_name,
-                        status: r.is_alive ? 'alive' as const : 'dead' as const,
-                        isAlive: r.is_alive,
-                        deathReason: r.death_reason,
-                        isHuman: prev.players.find(p => p.id === Number(r.id))?.isHuman || false
-                    })),
-                    systemMessages: [...prev.systemMessages, data.message as string]
-                }));
-                break;
-        }
-    }, [lastMessage]);
+                case 'player_voted':
+                    setGameData(prev => {
+                        const votedId = Number(data.player_id);
+                        // 确保不重复添加
+                        if (prev.votedPlayerIds?.includes(votedId)) {
+                            return prev;
+                        }
+                        console.log(`Player ${votedId} voted. Updating state.`);
+                        return {
+                            ...prev,
+                            votingThinkingPlayerIds: (prev.votingThinkingPlayerIds || []).filter(id => id !== votedId), // 移除思考状态
+                            votedPlayerIds: [...(prev.votedPlayerIds || []), votedId]
+                        };
+                    });
+                    break;
+
+                case 'night_action_change':
+                    setGameData(prev => ({
+                        ...prev,
+                        nightActionMessage: data.message as string
+                    }));
+                    break;
+
+                case 'player_speech':
+                    setGameData(prev => {
+                        // 确保不重复添加相同的发言（基于内容和发言者）
+                        // 增加更严格的重复检查，防止因为 React 状态合并导致的消息丢失
+                        const newSpeakerId = Number(data.speaker_id);
+                        const newContent = data.content as string;
+                        // 使用后端传回的 round，如果后端没传则回退到 prev.round
+                        const speechRound = typeof data.round === 'number' ? data.round : prev.round;
+                        
+                        const isDuplicate = prev.speeches.some(s => 
+                            s.playerId === newSpeakerId && 
+                            s.content === newContent
+                        );
+
+                        if (isDuplicate) {
+                            return prev;
+                        }
+
+                        return {
+                            ...prev,
+                            thinkingPlayerId: null, // 发言时清除思考状态
+                            speeches: [...prev.speeches, {
+                                playerId: newSpeakerId,
+                                playerName: data.speaker_name as string,
+                                content: newContent,
+                                round: speechRound,
+                                phase: prev.phase
+                            }],
+                            // 只有当 actionRequired 存在且确实是 speak 类型时才清除
+                            // 这样可以避免意外清除其他类型的 action (如 start_vote)
+                            actionRequired: prev.actionRequired?.action === 'speak' ? null : prev.actionRequired
+                        };
+                    });
+                    break;
+
+                case 'night_result':
+                    setGameData(prev => ({
+                        ...prev,
+                        nightMessages: data.messages as string[],
+                        systemMessages: [...prev.systemMessages, ...(data.messages as string[])],
+                        // 同步玩家状态（如死亡）
+                        players: data.players 
+                            ? (data.players as Array<{ id: number; name: string; is_human: boolean; is_alive: boolean; death_reason?: string }>).map(p => ({
+                                id: Number(p.id),
+                                name: p.name,
+                                isHuman: p.is_human,
+                                status: p.is_alive ? 'alive' as const : 'dead' as const,
+                                isAlive: p.is_alive,
+                                deathReason: p.death_reason,
+                                role: prev.players.find(old => old.id === Number(p.id))?.role, // 保留已知角色
+                                roleName: prev.players.find(old => old.id === Number(p.id))?.roleName // 保留已知角色名
+                            }))
+                            : prev.players
+                    }));
+                    break;
+
+                case 'vote_result':
+                    {
+                        const executedId = Number(data.executed_id);
+                        const msg = data.is_tie
+                            ? '平票，直接进入夜晚'
+                            : `${data.executed_name} 被投票出局`;
+                        setGameData(prev => ({
+                            ...prev,
+                            systemMessages: [...prev.systemMessages, msg],
+                            players: prev.players.map(p =>
+                                p.id === executedId
+                                    ? { ...p, status: 'dead' as const, isAlive: false, deathReason: '被公投出局' }
+                                    : p
+                            )
+                        }));
+                    }
+                    break;
+
+                case 'seer_result':
+                    {
+                        const resultText = data.is_good ? '好人' : '狼人';
+                        setGameData(prev => ({
+                            ...prev,
+                            systemMessages: [...prev.systemMessages,
+                            `查验结果：${data.target_name} 是 ${resultText}`
+                            ]
+                        }));
+                        // 触发自定义事件通知 ActionPanel
+                        window.dispatchEvent(new CustomEvent('seer_result', { detail: data }));
+                    }
+                    break;
+
+                case 'hunter_shoot_result':
+                    {
+                        const targetId = Number(data.target_id);
+                        setGameData(prev => ({
+                            ...prev,
+                            systemMessages: [...prev.systemMessages,
+                            `猎人带走了 ${data.target_name}`
+                            ],
+                            players: prev.players.map(p =>
+                                p.id === targetId
+                                    ? { ...p, status: 'dead' as const, isAlive: false, deathReason: '被猎人带走' }
+                                    : p
+                            )
+                        }));
+                    }
+                    break;
+
+                case 'game_over':
+                    setGameData(prev => ({
+                        ...prev,
+                        phase: 'game_over',
+                        result: data.result as GameResult,
+                        isGameRunning: true, // 保持为 true 以显示游戏结束面板
+                        players: (data.roles as Array<{
+                            id: number;
+                            name: string;
+                            role: RoleType;
+                            role_name: string;
+                            is_alive: boolean;
+                            death_reason?: string;
+                        }>).map(r => ({
+                            id: Number(r.id),
+                            name: r.name,
+                            role: r.role,
+                            roleName: r.role_name,
+                            status: r.is_alive ? 'alive' as const : 'dead' as const,
+                            isAlive: r.is_alive,
+                            deathReason: r.death_reason,
+                            isHuman: prev.players.find(p => p.id === Number(r.id))?.isHuman || false
+                        })),
+                        systemMessages: [...prev.systemMessages, data.message as string]
+                    }));
+                    break;
+            }
+        });
+
+        // 处理完所有消息后清空队列
+        clearQueue();
+    }, [messageQueue, clearQueue]);
 
     /**
      * 创建游戏

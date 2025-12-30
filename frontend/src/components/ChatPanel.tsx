@@ -22,6 +22,10 @@ interface ChatPanelProps {
     onStartVote?: () => void;
     /** 是否需要开始投票 */
     isStartVoteRequired?: boolean;
+    /** 进入夜晚回调 */
+    onEnterNight?: () => void;
+    /** 是否需要进入夜晚 */
+    isEnterNightRequired?: boolean;
 }
 
 /**
@@ -34,7 +38,9 @@ export function ChatPanel({
     humanPlayerId,
     onSpeak,
     onStartVote,
-    isStartVoteRequired = false
+    isStartVoteRequired = false,
+    onEnterNight,
+    isEnterNightRequired = false
 }: ChatPanelProps) {
     const [inputValue, setInputValue] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -73,29 +79,47 @@ export function ChatPanel({
                     {speeches.length === 0 ? (
                         <div className="empty-tip">等待游戏开始发言...</div>
                     ) : (
-                        speeches.map((msg, index) => (
-                            <div
-                                key={index}
-                                className={`speech-item ${msg.playerId === humanPlayerId ? 'own' : ''} animate-slide-in`}
-                            >
-                                <div className="speech-avatar">
-                                    <span className="avatar-num">{msg.playerId}</span>
-                                </div>
-                                <div className="speech-bubble">
-                                    <div className="speech-name">{msg.playerId}号 {msg.playerName}</div>
-                                    <div className="speech-content-box">
-                                        {msg.content}
+                        speeches.map((msg, index) => {
+                            // 检查是否需要显示轮次分割线
+                            const isNewRound = index === 0 || speeches[index - 1].round !== msg.round;
+                            const isLastWords = msg.phase === 'last_words';
+                            
+                            // 简单的分割线逻辑：轮次变化时显示
+                            // 或者如果是遗言，也特殊标记
+                            return (
+                                <div key={index} className="speech-wrapper">
+                                    {isNewRound && (
+                                        <div className="round-divider">
+                                            <span>第 {msg.round} 轮</span>
+                                        </div>
+                                    )}
+                                    
+                                    <div
+                                        className={`speech-item ${msg.playerId === humanPlayerId ? 'own' : ''} ${isLastWords ? 'last-words' : ''} animate-slide-in`}
+                                    >
+                                        <div className="speech-avatar">
+                                            <span className="avatar-num">{msg.playerId}</span>
+                                        </div>
+                                        <div className="speech-bubble">
+                                            <div className="speech-name">
+                                                {msg.playerId}号 {msg.playerName}
+                                                {isLastWords && <span className="badge-last-words">遗言</span>}
+                                            </div>
+                                            <div className="speech-content-box">
+                                                {msg.content}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                     <div ref={messagesEndRef} />
                 </div>
             </div>
 
             {/* 底部保留位置，用于输入框或状态条 */}
-            <div className={`input-area-wrapper ${isHumanTurn || isStartVoteRequired ? 'highlight' : ''}`}>
+            <div className={`input-area-wrapper ${isHumanTurn || isStartVoteRequired || isEnterNightRequired ? 'highlight' : ''}`}>
                 {isStartVoteRequired ? (
                     <div className="human-input-area animate-slide-up">
                         <div className="input-box">
@@ -104,6 +128,17 @@ export function ChatPanel({
                                 onClick={onStartVote}
                             >
                                 🗳️ 开始投票
+                            </button>
+                        </div>
+                    </div>
+                ) : isEnterNightRequired ? (
+                    <div className="human-input-area animate-slide-up">
+                        <div className="input-box">
+                            <button
+                                className="send-button full-width enter-night-btn"
+                                onClick={onEnterNight}
+                            >
+                                🌙 天黑了
                             </button>
                         </div>
                     </div>

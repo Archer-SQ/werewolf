@@ -65,6 +65,7 @@ export function ActionPanel({
             case 'seer_check':
                 if (selectedTarget) {
                     onAction('seer_check', { target_id: selectedTarget });
+                    setHasConfirmedCheck(true);
                 }
                 break;
             case 'witch_action':
@@ -95,6 +96,8 @@ export function ActionPanel({
 
     // 预言家查验结果状态
     const [checkResult, setCheckResult] = useState<{targetId: number, isGood: boolean} | null>(null);
+    // 是否已确认查验（用于隐藏确认按钮）
+    const [hasConfirmedCheck, setHasConfirmedCheck] = useState(false);
     
     // 监听 WebSocket 消息获取查验结果
     useEffect(() => {
@@ -108,12 +111,18 @@ export function ActionPanel({
             // 3秒后清除结果
             setTimeout(() => {
                 setCheckResult(null);
+                // 这里不重置 hasConfirmedCheck，等待后端推动阶段变化
             }, 3000);
         };
         
         window.addEventListener('seer_result', handleSeerResult);
         return () => window.removeEventListener('seer_result', handleSeerResult);
     }, []);
+
+    // 当 action 变化时（例如进入新回合），重置 hasConfirmedCheck
+    useEffect(() => {
+        setHasConfirmedCheck(false);
+    }, [action]);
 
     // 动作标题
     const getActionTitle = () => {
@@ -334,8 +343,10 @@ export function ActionPanel({
             {/* 确认按钮 */}
             {/* 只在需要确认操作时显示按钮 */}
             {/* 女巫阶段：只有选择了"毒人"才显示确认按钮，"救人"和"跳过"直接触发 */}
+            {/* 预言家阶段：如果已确认查验，则隐藏按钮 */}
             {/* 其他阶段：始终显示确认按钮 */}
-            {(action.action !== 'witch_action' || witchChoice === 'poison') && (
+            {(action.action !== 'witch_action' || witchChoice === 'poison') && 
+             !(action.action === 'seer_check' && hasConfirmedCheck) && (
                 <div className="action-footer">
                     <button
                         className="btn btn-primary confirm-btn"

@@ -25,12 +25,21 @@ interface UseWebSocketReturn {
  * 
  * @returns WebSocket 操作接口
  */
-export function useWebSocket(): UseWebSocketReturn {
+export function useWebSocket(): UseWebSocketReturn & { messageQueue: WSMessage[], clearQueue: () => void } {
     const [isConnected, setIsConnected] = useState(false);
     const [lastMessage, setLastMessage] = useState<WSMessage | null>(null);
+    // 使用消息队列来解决高并发下的消息丢失问题
+    const [messageQueue, setMessageQueue] = useState<WSMessage[]>([]);
     const wsRef = useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    /**
+     * 清空消息队列
+     */
+    const clearQueue = useCallback(() => {
+        setMessageQueue([]);
+    }, []);
 
     /**
      * 发送消息
@@ -91,6 +100,7 @@ export function useWebSocket(): UseWebSocketReturn {
                         return;
                     }
                     setLastMessage(message);
+                    setMessageQueue(prev => [...prev, message]);
                 } catch (e) {
                     console.error('消息解析失败:', e);
                 }
@@ -146,6 +156,8 @@ export function useWebSocket(): UseWebSocketReturn {
         lastMessage,
         sendMessage,
         connect,
-        disconnect
+        disconnect,
+        messageQueue,
+        clearQueue
     };
 }

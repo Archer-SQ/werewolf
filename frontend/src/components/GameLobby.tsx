@@ -135,10 +135,6 @@ export function GameLobby({
                             <span>2狼人 + 1预言家 + 1女巫 + 1猎人 + 2平民</span>
                         </div>
                         <div className="rule-item">
-                            <span className="rule-icon">⏱️</span>
-                            <span>发言时间：每人30秒</span>
-                        </div>
-                        <div className="rule-item">
                             <span className="rule-icon">🎯</span>
                             <span>平票直接进入夜晚</span>
                         </div>

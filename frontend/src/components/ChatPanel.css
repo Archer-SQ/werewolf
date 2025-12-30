@@ -79,6 +79,48 @@
   font-size: 0.9rem;
 }
 
+/* 轮次分割线 */
+.round-divider {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 16px 0;
+  width: 100%;
+}
+
+.round-divider span {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+/* 消息包装器 */
+.speech-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+/* 遗言样式 */
+.speech-item.last-words .speech-content-box {
+  background: #f0f0f0; /* 略微灰暗的背景 */
+  border: 1px solid #d9d9d9;
+}
+
+.badge-last-words {
+  display: inline-block;
+  background: #ff4d4f;
+  color: white;
+  font-size: 0.65rem;
+  padding: 1px 4px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
 /* 消息项容器 */
 .speech-item {
   display: flex;
@@ -236,6 +278,21 @@
   background: #e0e0e0;
   color: #999;
   cursor: not-allowed;
+}
+
+.enter-night-btn {
+  background: linear-gradient(135deg, #2c3e50, #4ca1af); /* 深蓝渐变 */
+  color: white;
+  font-weight: bold;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.enter-night-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(135deg, #34495e, #5dabb9);
 }
 
 /* 状态栏 */
