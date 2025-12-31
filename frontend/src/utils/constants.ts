@@ -6,16 +6,26 @@
 
 /** 
  * 动态获取后端服务地址
- * 如果是本地开发环境 (localhost)，尝试连接局域网 IP
- * 否则使用 location.hostname
+ * 生产环境：使用相对路径，由 Nginx 转发
+ * 开发环境：尝试连接本地后端
  */
 const getBaseUrl = () => {
-    // 获取当前页面访问的主机名（例如 'localhost' 或 '192.168.1.5'）
+    if (import.meta.env.PROD) {
+        // 生产环境使用当前域名/IP，不带端口（默认80/443），由 Nginx 处理 /api 前缀
+        return '';  
+    }
+    // 本地开发环境
     const hostname = window.location.hostname;
     return `http://${hostname}:8000`;
 };
 
 const getWsUrl = () => {
+    if (import.meta.env.PROD) {
+        // 生产环境使用 wss:// (如果是 https) 或 ws://
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        return `${protocol}//${window.location.host}/ws`;
+    }
+    // 本地开发环境
     const hostname = window.location.hostname;
     return `ws://${hostname}:8000/ws`;
 };
