@@ -53,6 +53,7 @@ export const PHASE_NAMES: Record<string, string> = {
     day_announce: '天亮了',
     day_discuss: '白天讨论',
     day_vote: '投票阶段',
+    last_words: '遗言阶段',
     hunter_shoot: '猎人开枪',
     game_over: '游戏结束'
 };

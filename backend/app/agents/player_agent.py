@@ -21,7 +21,8 @@ from .prompts import (
     WOLF_KILL_PROMPT_TEMPLATE,
     SEER_CHECK_PROMPT_TEMPLATE,
     WITCH_ACTION_PROMPT_TEMPLATE,
-    HUNTER_SHOOT_PROMPT_TEMPLATE
+    HUNTER_SHOOT_PROMPT_TEMPLATE,
+    LAST_WORDS_PROMPT_TEMPLATE
 )
 
 # 辅助函数：格式化玩家列表
@@ -218,8 +219,14 @@ class PlayerAgent:
         import random
         return random.choice(speeches)
 
-    async def generate_speech(self, game_state: GameState) -> str:
-        """生成发言内容"""
+    async def generate_speech(self, game_state: GameState, is_last_words: bool = False) -> str:
+        """
+        生成发言内容
+        
+        Args:
+            game_state: 游戏状态
+            is_last_words: 是否是遗言
+        """
         system_prompt = self._build_system_prompt(game_state)
         
         # 获取本轮之前的发言
@@ -237,11 +244,20 @@ class PlayerAgent:
         # 构建情况分析
         situation = self._analyze_situation(game_state)
         
-        user_prompt = SPEECH_PROMPT_TEMPLATE.format(
-            previous_speeches=format_speeches(previous_speeches),
-            situation_analysis=situation,
-            role_name=RoleAction.get_role_name(self.player.role) if self.player.role else "玩家"
-        )
+        if is_last_words:
+            # 使用遗言模板
+            death_reason = self.player.death_reason or "未知原因"
+            user_prompt = LAST_WORDS_PROMPT_TEMPLATE.format(
+                death_reason=death_reason,
+                situation_analysis=situation
+            )
+        else:
+            # 正常发言模板
+            user_prompt = SPEECH_PROMPT_TEMPLATE.format(
+                previous_speeches=format_speeches(previous_speeches),
+                situation_analysis=situation,
+                role_name=RoleAction.get_role_name(self.player.role) if self.player.role else "玩家"
+            )
         
         response = await self._call_llm(system_prompt, user_prompt)
         if response:

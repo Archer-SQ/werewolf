@@ -90,6 +90,7 @@ class GameState(BaseModel):
     speech_records: List[SpeechRecord] = Field(default_factory=list, description="发言记录")
     night_action: Optional[NightAction] = Field(None, description="夜晚行动")
     witch_skills: WitchSkills = Field(default_factory=WitchSkills, description="女巫技能")
+    checked_players: List[int] = Field(default_factory=list, description="预言家已查验玩家ID列表")
     votes: Dict[int, int] = Field(default_factory=dict, description="当前投票情况")
     result: GameResult = Field(default=GameResult.ONGOING, description="游戏结果")
     human_player_id: Optional[int] = Field(None, description="真实玩家ID")

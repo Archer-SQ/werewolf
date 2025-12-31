@@ -421,6 +421,9 @@ class GameController:
 
         game_state, messages = self.engine.enter_day()
         
+        # 记录原本应该进入的阶段，以便遗言后恢复
+        original_phase = game_state.phase
+        
         # 发送夜晚结算信息
         if messages:
             await self.send_message("night_result", {
@@ -452,12 +455,44 @@ class GameController:
                      dead_players = [p for p in game_state.players if p.name in died_names and not p.is_alive()]
                      for player in dead_players:
                          await self._handle_last_words(player.id)
+                     
+                     # 显式标记首夜遗言结束，避免重复触发
+                     self._first_night_last_words_done = True
+                     
+                     # 清除 action_required，防止前端残留输入框
+                     await self.send_message("action_required", {})
+                     
+                     await asyncio.sleep(1)
+                     
+                     # 恢复原本的阶段
+                     game_state.phase = original_phase
+                     
+                     # 如果是进入讨论阶段，需要发送 phase_change 通知前端
+                     if original_phase == GamePhase.DAY_DISCUSS:
+                         # 恢复当前发言者，防止因 _handle_last_words 修改 current_speaker 导致第一个玩家被跳过
+                         if self.engine.speaking_order:
+                             game_state.current_speaker = self.engine.speaking_order[self.engine.current_speaker_index]
+                             
+                         # 显式切换阶段，确保前端状态更新
+                         await self.send_message("phase_change", {
+                            "phase": "day_discuss",
+                            "message": "白天讨论阶段开始，请按顺序发言"
+                        })
+                     
+                     # 不在这里调用 _run_discussion，让代码继续向下执行，经过游戏结束检查后统一调用
+                     print("DEBUG: _enter_day ready to continue to _run_discussion")
+                 else:
+                     # 非首夜，不处理遗言，直接继续流程
+                     pass
             else:
                  await asyncio.sleep(2)
                  await self.send_message("announcement", {
                     "content": "昨晚是平安夜"
                 })
                  await asyncio.sleep(3)
+                 
+                 # 无人死亡，直接进入白天
+                 pass
         else:
             await self.send_message("night_result", {
                 "messages": ["昨晚是平安夜，没有人死亡"],
@@ -491,7 +526,11 @@ class GameController:
              
         # 进入白天讨论
         # 使用 create_task 避免阻塞
-        asyncio.create_task(self._run_discussion())
+        if game_state.phase == GamePhase.DAY_DISCUSS:
+            print("DEBUG: _enter_day calling _run_discussion")
+            asyncio.create_task(self._run_discussion())
+        else:
+            print(f"DEBUG: _enter_day phase is {game_state.phase}, skipping _run_discussion")
     
     async def _run_discussion(self, resume: bool = False) -> None:
         """
@@ -500,16 +539,29 @@ class GameController:
         Args:
             resume: 是否是恢复之前的讨论（例如真实玩家发言后）
         """
+        print(f"DEBUG: _run_discussion started, resume={resume}")
         game_state = self.engine.game_state
         if not game_state:
             return
         
         # 只有在非恢复模式下才发送阶段变更通知
         if not resume:
+            # 再次确认 phase，防止状态被覆盖
+            if game_state.phase != GamePhase.DAY_DISCUSS:
+                game_state.phase = GamePhase.DAY_DISCUSS
+                
             await self.send_message("phase_change", {
                 "phase": "day_discuss",
                 "message": "白天讨论阶段开始，请按顺序发言"
             })
+            
+            # 确保 current_speaker 正确
+            if self.engine.speaking_order and game_state.current_speaker not in self.engine.speaking_order:
+                 # 如果当前发言者不在发言队列中（可能是死者），强制重置为第一个存活玩家
+                 if self.engine.speaking_order:
+                     game_state.current_speaker = self.engine.speaking_order[0]
+                     self.engine.current_speaker_index = 0
+                     print(f"DEBUG: _run_discussion reset current_speaker to {game_state.current_speaker}")
         
         # 检查是否所有人都死亡（防止死循环）
         alive_count = len(game_state.get_alive_players())
@@ -621,11 +673,13 @@ class GameController:
                 "speaker_id": speaker_id,
                 "speaker_name": speaker.name,
                 "content": content,
-                "round": game_state.round
+                "round": game_state.round,
+                "phase": game_state.phase.value # 显式传递当前阶段
             })
             
             # 如果正在等待遗言，触发事件并返回
             if hasattr(self, '_waiting_for_speech') and self._waiting_for_speech:
+                await asyncio.sleep(0.5)  # 短暂延迟，确保前端先收到 player_speech
                 self._waiting_for_speech.set()
                 return
 
@@ -841,14 +895,29 @@ class GameController:
                 # 发表遗言
                 await self._handle_last_words(executed_id)
                 
-                # 检查猎人
+                # 检查是否是猎人，如果是，直接进入猎人开枪环节，不显示"进入夜晚"按钮
                 executed = game_state.get_player(executed_id)
                 if executed and executed.role == RoleType.HUNTER:
-                    game_state.phase = GamePhase.HUNTER_SHOOT
-                    # 使用 create_task 避免阻塞
-                    # 标记触发来源为投票阶段
-                    asyncio.create_task(self._hunter_shoot(is_day_vote=True))
-                    return
+                     # 播报猎人发动技能
+                     await self.send_message("announcement", {
+                        "content": "猎人发动技能"
+                     })
+                     await asyncio.sleep(2)
+                     
+                     game_state.phase = GamePhase.HUNTER_SHOOT
+                     # 使用 create_task 避免阻塞
+                     # 标记触发来源为投票阶段
+                     asyncio.create_task(self._hunter_shoot(is_day_vote=True))
+                     return
+                
+                # 非猎人，正常等待进入夜晚
+                await self.send_message("action_required", {
+                    "action": "enter_night",
+                    "message": "遗言结束，请点击进入夜晚"
+                })
+                self._waiting_for_night_start = asyncio.Event()
+                await self._waiting_for_night_start.wait()
+                self._waiting_for_night_start = None
             
             # 只有在游戏未结束且非猎人开枪阶段才进入夜晚
             if game_state.phase != GamePhase.HUNTER_SHOOT:
@@ -882,6 +951,8 @@ class GameController:
         # 1. 前端会根据 phase_change 清除之前的 action_required (如"等待投票")
         # 2. 前端收到 player_speech 时会记录当前的 phase，用于显示"遗言"标签
         game_state.phase = GamePhase.LAST_WORDS
+        # 设置当前发言者，确保 handle_speech 能正确处理遗言
+        game_state.current_speaker = player_id
         await self.send_message("phase_change", {
             "phase": "last_words",
             "message": "请发表遗言"
@@ -928,28 +999,17 @@ class GameController:
                 })
                 await asyncio.sleep(random.uniform(1.0, 2.0))
                 
-                # 使用 generate_speech 生成遗言，也可以专门写个 generate_last_words
-                speech = await self.agents[player_id].generate_speech(game_state)
-                # 可以在 speech 前加个前缀表示是遗言
+                # 使用 generate_speech 生成遗言
+                speech = await self.agents[player_id].generate_speech(game_state, is_last_words=True)
                 
                 await self.send_message("player_speech", {
                     "speaker_id": player_id,
                     "speaker_name": player.name,
                     "content": speech,
-                    "round": game_state.round
+                    "round": game_state.round,
+                    "phase": "last_words" # 显式传递阶段
                 })
                 await asyncio.sleep(2)
-                
-                # 遗言结束，等待真实玩家确认进入夜晚
-                # 这样玩家有时间看完遗言，不会自动跳走
-                await self.send_message("action_required", {
-                    "action": "enter_night",
-                    "message": "遗言结束，请点击按钮进入夜晚"
-                })
-                
-                self._waiting_for_night_start = asyncio.Event()
-                await self._waiting_for_night_start.wait()
-                self._waiting_for_night_start = None
 
     async def _hunter_shoot(self, is_day_vote: bool = False) -> None:
         """
@@ -1149,6 +1209,10 @@ class GameController:
         elif action == "enter_night":
             if hasattr(self, '_waiting_for_night_start') and self._waiting_for_night_start:
                 self._waiting_for_night_start.set()
+
+        elif action == "enter_day":
+            if hasattr(self, '_waiting_for_day_start') and self._waiting_for_day_start:
+                self._waiting_for_day_start.set()
         
         elif action == "hunter_shoot":
             target_id = data.get("target_id")

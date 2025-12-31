@@ -107,13 +107,21 @@ class SeerAction:
             if game_state.night_action:
                 game_state.night_action.seer_target = target_id
                 game_state.night_action.seer_result = result
+            
+            # 记录已查验玩家
+            if target_id not in game_state.checked_players:
+                game_state.checked_players.append(target_id)
+                
             return result
         return None
     
     @staticmethod
     def get_valid_targets(game_state: "GameState", seer_id: int) -> List[int]:
-        """获取可查验目标列表（存活的其他玩家）"""
-        return [p.id for p in game_state.get_alive_players() if p.id != seer_id]
+        """获取可查验目标列表（存活的其他玩家，且未被查验过）"""
+        return [
+            p.id for p in game_state.get_alive_players() 
+            if p.id != seer_id and p.id not in game_state.checked_players
+        ]
 
 
 class WitchAction:

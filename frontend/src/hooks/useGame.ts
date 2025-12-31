@@ -224,6 +224,15 @@ export function useGame(): UseGameReturn {
                     break;
 
                 case 'action_required':
+                    // 如果 data 为空或没有 action，则清除 actionRequired
+                    if (!data || !data.action) {
+                        setGameData(prev => ({
+                            ...prev,
+                            actionRequired: null
+                        }));
+                        break;
+                    }
+
                     setGameData(prev => ({
                         ...prev,
                         // 如果是女巫行动，强制清除之前的预言家查验结果面板（如果还在）
