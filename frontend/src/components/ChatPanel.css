@@ -242,11 +242,12 @@
 
 .chat-input-field {
   flex: 1;
-  padding: 10px;
-  border-radius: 4px;
-  border: 1px solid var(--border-color);
   background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 8px 12px;
   color: var(--color-text-primary);
+  font-size: 16px; /* 关键修复：iOS下小于16px的输入框聚焦时会自动放大 */
   outline: none;
 }
 
