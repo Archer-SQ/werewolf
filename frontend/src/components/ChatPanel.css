@@ -339,3 +339,46 @@
 .animate-slide-in {
   animation: slide-in 0.3s ease forwards;
 }
+
+@media (max-width: 900px) {
+  .chat-panel-container {
+    border-radius: 0; /* 移动端不需要圆角 */
+    border: none;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .panel-header {
+    padding: 8px 12px;
+    min-height: 40px;
+  }
+
+  .panel-header h3 {
+    font-size: 0.9rem;
+  }
+
+  .panel-content {
+    padding: 12px;
+  }
+
+  .speech-item {
+    max-width: 90%;
+  }
+  
+  .speech-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .avatar-num {
+    font-size: 0.8rem;
+  }
+
+  .input-area-wrapper {
+    padding: 0 8px;
+    height: 56px;
+  }
+  
+  .send-button {
+    padding: 0 12px;
+  }
+}

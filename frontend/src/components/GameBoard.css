@@ -307,50 +307,96 @@
   font-weight: 600;
 }
 
-/* 响应式 */
+/* 响应式适配优化 */
 @media (max-width: 900px) {
+  .game-board {
+    height: 100vh;
+    overflow: hidden; /* 防止整体滚动 */
+  }
+
+  .game-header {
+    padding: 8px 12px;
+    height: 60px; /* 固定高度 */
+    flex-shrink: 0;
+  }
+
+  .game-title {
+    font-size: 1rem;
+  }
+
+  .round-badge, .phase-badge {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
+  .my-role .role-label {
+    display: none;
+  }
+
   .game-main {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    height: calc(100% - 60px);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    gap: 0;
+    grid-template-columns: none;
+    grid-template-rows: none;
   }
 
+  /* 玩家面板改为顶部横向滚动 */
   .players-panel {
-    max-height: 200px;
-    overflow-y: auto;
+    width: 100%;
+    height: auto;
+    max-height: 140px; /* 限制高度 */
+    flex-shrink: 0;
+    padding: 8px;
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    overflow: hidden;
   }
 
-  .players-list {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .players-list .player-card {
-    flex: 1;
-    min-width: 140px;
+  .panel-header {
+    display: none; /* 手机端隐藏玩家列表标题，节省空间 */
   }
 
   .role-description {
-    display: none;
+    display: none; /* 手机端隐藏角色说明，节省空间 */
+  }
+
+  .players-list {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    height: 100%;
+    align-items: flex-start;
+    -webkit-overflow-scrolling: touch; /* iOS 平滑滚动 */
+  }
+
+  /* 隐藏滚动条但保留功能 */
+  .players-list::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  .players-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+  }
+
+  /* 中间面板占满剩余空间 */
+  .center-panel {
+    flex: 1;
+    width: 100%;
+    height: auto; /* 让 flex 控制高度 */
+    min-height: 0; /* 关键：允许 flex 子项滚动 */
+    padding: 0;
   }
 }
 
-@media (max-width: 640px) {
-  .game-header {
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 12px 16px;
-  }
-
+@media (max-width: 480px) {
   .header-center {
-    position: static;
-    transform: none;
-    order: -1;
-    width: 100%;
-    text-align: center;
-  }
-
-  .game-main {
-    padding: 16px;
-    gap: 16px;
+    display: none; /* 极小屏幕隐藏标题 */
   }
 }

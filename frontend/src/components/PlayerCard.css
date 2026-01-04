@@ -311,3 +311,66 @@
     transform: scale(1.05);
     box-shadow: 0 0 15px var(--role-color);
 }
+
+/* 移动端适配 */
+@media (max-width: 900px) {
+    .player-card {
+        flex-direction: column;
+        min-width: 72px;
+        width: 72px;
+        padding: 6px 2px;
+        gap: 4px;
+        border-radius: 8px;
+    }
+
+    .player-info {
+        align-items: center;
+        width: 100%;
+    }
+
+    .player-name {
+        font-size: 0.75rem;
+        text-align: center;
+        width: 100%;
+    }
+
+    .player-role {
+        display: none; /* 空间太小，隐藏文字角色 */
+    }
+
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+    }
+
+    .avatar-number {
+        font-size: 1rem;
+    }
+
+    /* 状态徽章调整位置到头像上 */
+    .status-badge {
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding: 2px 6px;
+        font-size: 0.6rem;
+        transform: scale(0.8);
+    }
+    
+    .player-card.alive {
+        border-left: 1px solid var(--border-color); /* 恢复默认边框 */
+        border-bottom: 3px solid var(--role-color, var(--color-success)); /* 改为底部指示条 */
+    }
+
+    .death-reason-badge {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.6rem;
+        padding: 0 4px;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 10;
+        margin: 0;
+    }
+}

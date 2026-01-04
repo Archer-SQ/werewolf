@@ -108,11 +108,15 @@ export function GameBoard({
             // 只保留最新的一条消息
             if (newMessages.length > 0) {
                 const latestMsg = newMessages[newMessages.length - 1];
-                setToasts([{
-                    id: Date.now(),
-                    content: latestMsg,
-                    type: 'info' as const
-                }]);
+                
+                // 过滤掉发言阶段的提示（包含"开始发言"或"请发言"的消息不弹窗）
+                if (!latestMsg.includes('开始发言') && !latestMsg.includes('请发言')) {
+                    setToasts([{
+                        id: Date.now(),
+                        content: latestMsg,
+                        type: 'info' as const
+                    }]);
+                }
             }
             lastMsgCountRef.current = systemMessages.length;
         }

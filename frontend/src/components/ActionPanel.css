@@ -482,3 +482,48 @@
     transform: rotate(360deg);
   }
 }
+
+@media (max-width: 900px) {
+  .action-panel {
+    padding: 16px;
+    border-radius: 0;
+    height: 100%;
+    justify-content: flex-start;
+    overflow-y: auto;
+  }
+
+  .targets-grid {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .target-btn {
+    width: 80px; /* 固定宽度 */
+    flex: none;
+  }
+
+  .action-btn {
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  .action-footer {
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  
+  .witch-controls {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .witch-actions {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+  
+  .witch-option {
+    min-width: 100%;
+  }
+}

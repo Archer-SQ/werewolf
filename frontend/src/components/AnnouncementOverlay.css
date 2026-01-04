@@ -100,6 +100,27 @@
     text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
 }
 
+@media (max-width: 900px) {
+    .announcement-text {
+        font-size: 1.8rem;
+    }
+
+    .moon-icon {
+        width: 48px;
+        height: 48px;
+    }
+
+    .announcement-overlay.with-action .announcement-content {
+        padding-top: 5vh; /* 移动端减少顶部空间 */
+    }
+
+    .overlay-action-container {
+        margin-top: 20px;
+        width: 100%;
+        padding: 0 16px;
+    }
+}
+
 .phase-subtitle {
     font-size: 0.8rem;
     color: #64748b;
