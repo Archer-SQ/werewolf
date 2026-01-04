@@ -26,6 +26,9 @@ export function RoleSelection({ assignedRole, roleDescription, onConfirm }: Role
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const [cards, setCards] = useState<Array<{ id: number; delay: number }>>([]);
     const [centerOffset, setCenterOffset] = useState({ x: 0, y: 0 });
+    
+    // 简单的移动端检测
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 900;
 
     // 初始化卡片
     useEffect(() => {
@@ -92,6 +95,7 @@ export function RoleSelection({ assignedRole, roleDescription, onConfirm }: Role
                         
                         if (isSelected) {
                             wrapperClass += ' selected';
+                            if (isRevealed) wrapperClass += ' revealed';
                             // 移除 flipped 类，改用内联样式控制翻转
                         } else if (selectedIndex !== null) {
                             wrapperClass += ' fading';
@@ -103,11 +107,21 @@ export function RoleSelection({ assignedRole, roleDescription, onConfirm }: Role
                         };
 
                         if (isSelected) {
-                            wrapperStyle = {
-                                ...wrapperStyle,
-                                transform: `translate(${centerOffset.x}px, ${centerOffset.y}px) scale(1.5) ${isRevealed ? 'rotateY(180deg)' : ''}`,
-                                zIndex: 1000
-                            };
+                            // PC端使用 JS 计算的 transform 动画
+                            // 移动端通过 CSS fixed 定位处理，不应用这里的 transform
+                            if (!isMobile) {
+                                wrapperStyle = {
+                                    ...wrapperStyle,
+                                    transform: `translate(${centerOffset.x}px, ${centerOffset.y}px) scale(1.5) ${isRevealed ? 'rotateY(180deg)' : ''}`,
+                                    zIndex: 1000
+                                };
+                            } else {
+                                // 移动端只设置 zIndex，动画交给 CSS
+                                wrapperStyle = {
+                                    ...wrapperStyle,
+                                    zIndex: 2000
+                                };
+                            }
                         }
 
                         return (
