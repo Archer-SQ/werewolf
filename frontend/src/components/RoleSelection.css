@@ -3,67 +3,67 @@
  */
 
 .role-selection-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.9);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    backdrop-filter: blur(8px);
-    animation: fade-in 0.5s ease;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+  animation: fade-in 0.5s ease;
 }
 
 .role-selection-container {
-    text-align: center;
-    max-width: 1200px;
-    width: 100%;
-    padding: 20px;
+  text-align: center;
+  max-width: 1200px;
+  width: 100%;
+  padding: 20px;
 }
 
 .role-selection-title {
-    font-size: 2rem;
-    color: var(--color-text-primary);
-    margin-bottom: 40px;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-    animation: slide-down 0.5s ease;
+  font-size: 2rem;
+  color: var(--color-text-primary);
+  margin-bottom: 40px;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  animation: slide-down 0.5s ease;
 }
 
 .cards-container {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-    justify-items: center;
-    perspective: 1000px;
-    margin-bottom: 40px;
-    max-width: 800px;
-    margin-left: auto;
-    margin-right: auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  justify-items: center;
+  perspective: 1000px;
+  margin-bottom: 40px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* 卡片样式 */
 .role-card-wrapper {
-    width: 160px;
-    height: 240px;
-    cursor: pointer;
-    position: relative;
-    transform-style: preserve-3d;
-    transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+  width: 160px;
+  height: 240px;
+  cursor: pointer;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .role-card-wrapper:hover {
-    transform: translateY(-10px);
+  transform: translateY(-10px);
 }
 
 .role-card-wrapper.selected {
-    /* position: fixed; 已移除，改为 transform 移动 */
-    /* top: 50%; */
-    /* left: 50%; */
-    /* transform: translate(-50%, -50%) scale(1.5) rotateY(180deg); */
-    /* z-index: 1001; 在内联样式中设置 */
+  /* position: fixed; 已移除，改为 transform 移动 */
+  /* top: 50%; */
+  /* left: 50%; */
+  /* transform: translate(-50%, -50%) scale(1.5) rotateY(180deg); */
+  /* z-index: 1001; 在内联样式中设置 */
 }
 
 /* 
@@ -74,164 +74,178 @@
 */
 
 .role-card-wrapper.fading {
-    opacity: 0;
-    pointer-events: none;
-    transform: scale(0.8);
-    transition: opacity 0.5s ease, transform 0.5s ease;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.8);
+  transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
 .role-card {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    backface-visibility: hidden;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    overflow: hidden;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
 }
 
 /* 卡片背面（统一图案） */
 .card-back {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    border: 2px solid #4a4e69;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transform: rotateY(0deg);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 2px solid #4a4e69;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transform: rotateY(0deg);
 }
 
 .card-pattern {
-    width: 80%;
-    height: 80%;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+  width: 80%;
+  height: 80%;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
 }
 
 .card-logo {
-    font-size: 2rem;
-    opacity: 0.3;
-    filter: grayscale(1);
+  font-size: 2rem;
+  opacity: 0.3;
+  filter: grayscale(1);
 }
 
 /* 卡片正面（角色信息） */
 .card-front {
-    background: var(--color-bg-card);
-    transform: rotateY(180deg);
-    border: 2px solid var(--role-color, var(--color-accent-primary));
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 16px; /* 增加内边距 */
-    justify-content: space-between;
+  background: var(--color-bg-card);
+  transform: rotateY(180deg);
+  border: 2px solid var(--role-color, var(--color-accent-primary));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px; /* 减小默认内边距 */
+  justify-content: space-between;
 }
 
 .role-icon {
-    font-size: 3rem;
-    margin-top: 20px;
-    filter: drop-shadow(0 0 10px var(--role-color));
+  font-size: 3rem;
+  margin-top: 20px;
+  filter: drop-shadow(0 0 10px var(--role-color));
 }
 
 .role-name {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: var(--role-color);
-    text-shadow: 0 0 5px rgba(0,0,0,0.5);
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--role-color);
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
 .role-desc {
-    font-size: 0.75rem; /* 稍微调小字体 */
-    color: var(--color-text-secondary);
-    text-align: center;
-    line-height: 1.3; /* 紧凑一点的行高 */
-    margin-top: 12px;
-    
-    /* 溢出处理 */
-    display: -webkit-box;
-    -webkit-line-clamp: 4; /* 限制显示4行 */
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    
-    /* 确保不超出容器宽度 */
-    width: 100%;
-    word-break: break-word; /* 防止长单词溢出 */
+  font-size: 0.75rem; /* 稍微调小字体 */
+  color: var(--color-text-secondary);
+  text-align: center;
+  line-height: 1.3; /* 紧凑一点的行高 */
+  margin-top: 12px;
+
+  /* 溢出处理 */
+  display: -webkit-box;
+  -webkit-line-clamp: 4; /* 限制显示4行 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  /* 确保不超出容器宽度 */
+  width: 100%;
+  word-break: break-word; /* 防止长单词溢出 */
 }
 
 /* 确认按钮 */
 .role-confirm-btn {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.5s ease;
-    margin-top: 40px;
-    padding: 12px 32px;
-    font-size: 1.2rem;
-    background: var(--color-accent-primary);
-    border: none;
-    border-radius: 24px;
-    color: white;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.5s ease;
+  margin-top: 40px;
+  padding: 12px 32px;
+  font-size: 1.2rem;
+  background: var(--color-accent-primary);
+  border: none;
+  border-radius: 24px;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
 }
 
 .role-confirm-btn.visible {
-    opacity: 1;
-    transform: translateY(0);
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .role-confirm-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
 }
 
 /* 动画关键帧 */
 @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slide-down {
-    from { transform: translateY(-20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* 响应式适配 */
 @media (max-width: 900px) {
-    .cards-container {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-        margin-bottom: 20px;
-    }
+  .cards-container {
+    grid-template-columns: repeat(3, 1fr);
+    margin-bottom: 0;
+    gap: 12px;
+  }
 
-    .role-card-wrapper {
-        width: 100px;
-        height: 150px;
-    }
+  .role-card-wrapper {
+    width: 100px;
+    height: 150px;
+  }
 
-    .role-selection-title {
-        font-size: 1.5rem;
-        margin-bottom: 20px;
-    }
+  .role-card-wrapper.selected {
+    height: 200px;
+    width: 150px;
+    margin-left: -26px;
+  }
 
-    .role-icon {
-        font-size: 2rem;
-    }
+  .role-selection-title {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+  }
 
-    .role-name {
-        font-size: 1.2rem;
-    }
+  .role-icon {
+    font-size: 2rem;
+  }
 
-    .role-desc {
-        font-size: 0.65rem;
-        -webkit-line-clamp: 3;
-    }
-}
+  .role-name {
+    font-size: 1.2rem;
+  }
 
-@media (max-width: 480px) {
-    .cards-container {
-        grid-template-columns: repeat(2, 1fr);
-    }
+  .role-desc {
+    font-size: 0.65rem;
+    -webkit-line-clamp: 3;
+  }
+
+  .role-confirm-btn {
+    margin-top: 0;
+  }
 }
