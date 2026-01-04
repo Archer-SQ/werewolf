@@ -274,7 +274,14 @@ export function ActionPanel({
                                 <button
                                     key={player.id}
                                     className={`target-btn ${selectedTarget === player.id ? 'selected' : ''} ${isChecked ? 'checked' : ''}`}
-                                    onClick={() => setSelectedTarget(player.id)}
+                                    onClick={() => {
+                                        setSelectedTarget(player.id);
+                                        // 移动端女巫毒人特殊处理：点击即触发
+                                        const isMobile = window.innerWidth <= 768;
+                                        if (isMobile && action.action === 'witch_action' && witchChoice === 'poison') {
+                                            onAction('witch_action', { save: false, poison_target: player.id });
+                                        }
+                                    }}
                                     disabled={isChecked}
                                 >
                                     {isChecked ? (
@@ -346,7 +353,9 @@ export function ActionPanel({
             {/* 预言家阶段：如果已确认查验，则隐藏按钮 */}
             {/* 其他阶段：始终显示确认按钮 */}
             {(action.action !== 'witch_action' || witchChoice === 'poison') && 
-             !(action.action === 'seer_check' && hasConfirmedCheck) && (
+             !(action.action === 'seer_check' && hasConfirmedCheck) && 
+             // 移动端女巫毒人时不显示底部按钮（点击头像直接触发）
+             !(typeof window !== 'undefined' && window.innerWidth <= 900 && action.action === 'witch_action' && witchChoice === 'poison') && (
                 <div className="action-footer">
                     <button
                         className="btn btn-primary confirm-btn"

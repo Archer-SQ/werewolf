@@ -54,7 +54,8 @@
   flex-wrap: nowrap;
   gap: 16px;
   justify-content: center;
-  margin-bottom: 24px;
+  margin-top: -30px;
+  margin-bottom: 40px;
   width: 100%;
   max-width: 500px; /* 4 * 100 + 3 * 16 + padding */
   margin-left: auto;
@@ -417,14 +418,17 @@
 
 /* 优化的加载圈 */
 .loading-spinner {
-  width: 56px;
-  height: 56px;
-  border: 4px solid rgba(255, 255, 255, 0.1);
+  width: 28px;
+  min-width: 28px; /* 防止被 flex 压缩 */
+  height: 28px;
+  min-height: 28px; /* 防止被 flex 压缩 */
+  border: 3px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
   border-top-color: var(--color-accent-primary);
   border-right-color: rgba(99, 102, 241, 0.5); /* 渐变感 */
   animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+  flex-shrink: 0; /* 关键：禁止收缩 */
 }
 
 .wait-text {
@@ -519,11 +523,37 @@
   }
   
   .witch-actions {
-    flex-wrap: wrap;
-    overflow-x: visible;
+    flex-direction: row; /* 强制水平排列 */
+    flex-wrap: nowrap; /* 不换行 */
+    overflow-x: auto; /* 允许横向滚动 */
+    justify-content: space-between;
+    gap: 8px; /* 减小间距 */
+    padding-bottom: 4px;
   }
   
   .witch-option {
-    min-width: 100%;
+    min-width: 100px; /* 允许缩小 */
+    flex: 1; /* 均分宽度 */
+    padding: 10px 4px; /* 减小内边距 */
+  }
+
+  /* 移动端精简女巫面板内容 */
+  .witch-option .option-icon {
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+  }
+
+  .witch-option .option-title {
+    font-size: 0.8rem;
+  }
+
+  .witch-option .option-desc {
+    display: none; /* 隐藏描述文字，节省空间 */
+  }
+
+  .witch-option .btn {
+    padding: 6px 0; /* 减小按钮高度 */
+    font-size: 0.85rem;
+    margin-top: 8px;
   }
 }
