@@ -16,7 +16,7 @@ class Config:
     # 模型 API 配置
     DASHSCOPE_API_KEY: str = os.getenv("DASHSCOPE_API_KEY", "")
     LLM_BASE_URL: str = os.getenv("LLM_BASE_URL", "https://dashscope.aliyuncs.com/api/v1")
-    QWEN_MODEL_NAME: str = os.getenv("QWEN_MODEL_NAME", "glm-4.7")
+    QWEN_MODEL_NAME: str = os.getenv("QWEN_MODEL_NAME", "glm-4.6")
     
     # 服务器配置
     HOST: str = os.getenv("HOST", "0.0.0.0")
